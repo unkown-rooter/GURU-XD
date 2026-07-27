@@ -1,0 +1,49 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Analytics Page Specific Styles
+ */
+
+.analytics-charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 992px) {
+  .analytics-charts-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.chart-box-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-box-container {
+  flex: 1;
+  min-height: 280px;
+  position: relative;
+}
+
+.groups-summary-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(44, 59, 85, 0.15);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.group-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.group-metric-label {
+  color: var(--text-secondary);
+}

@@ -1,0 +1,138 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Commands Page Specific Styles
+ */
+
+/* Filters and Category Chips */
+.commands-filter-card {
+  margin-bottom: 24px;
+}
+
+.commands-filter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.category-selectors {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.category-selectors::-webkit-scrollbar {
+  height: 4px;
+}
+
+.category-chip {
+  padding: 8px 16px;
+  border-radius: 50px;
+  background-color: rgba(44, 59, 85, 0.15);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.category-chip:hover {
+  border-color: var(--primary-color);
+  color: var(--text-color);
+}
+
+.category-chip.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #FFFFFF;
+}
+
+/* Commands Cards Grid */
+.commands-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .commands-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.command-item-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.cmd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.cmd-trigger-text {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.cmd-desc-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.cmd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  font-size: 12px;
+}
+
+.cmd-counter-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.cmd-counter-badge i {
+  color: var(--primary-color);
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.category-tag.ai { background-color: rgba(59, 130, 246, 0.1); color: var(--primary-color); }
+.category-tag.downloads { background-color: rgba(34, 197, 94, 0.1); color: var(--success-color); }
+.category-tag.groups { background-color: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+.category-tag.owner { background-color: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+.category-tag.utilities { background-color: rgba(148, 163, 184, 0.1); color: var(--text-secondary); }
+.category-tag.fun { background-color: rgba(168, 85, 247, 0.1); color: #A855F7; }
+.category-tag.settings { background-color: rgba(236, 72, 153, 0.1); color: #EC4899; }

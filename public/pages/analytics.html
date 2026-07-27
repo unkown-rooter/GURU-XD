@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Telemetry Analytics</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/analytics.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Compiling Analytics Data...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Historical Analytics</h1>
+            <p class="page-subheading font-sans">Analyze bot usage charts, message frequencies, group metrics, and query logs.</p>
+          </div>
+          <div>
+            <select class="form-control" id="timeframe-selector" onchange="loadAnalyticsTimeframe()" style="width: 150px; background-color: var(--card-color);">
+              <option value="7days">Last 7 Days</option>
+              <option value="30days" selected>Last 30 Days</option>
+              <option value="12months">Last 12 Months</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Telemetry Summary Cards -->
+        <div class="stat-cards-grid">
+          <div class="card stat-card">
+            <div class="stat-icon success"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-details">
+              <div class="stat-label">Average Response Time</div>
+              <div class="stat-value">280 ms</div>
+              <div class="stat-trend up"><i class="fa-solid fa-arrow-down-long"></i> -45ms since update</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon primary"><i class="fa-solid fa-paper-plane"></i></div>
+            <div class="stat-details">
+              <div class="stat-label">Total Messages Broadcast</div>
+              <div class="stat-value">3.4 Million</div>
+              <div class="stat-trend up"><i class="fa-solid fa-arrow-up"></i> +12.4% vs last month</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon warning"><i class="fa-solid fa-database"></i></div>
+            <div class="stat-details">
+              <div class="stat-label">Total DB Cache Requests</div>
+              <div class="stat-value">18.2 Million</div>
+              <div class="stat-trend up"><i class="fa-solid fa-arrow-up"></i> 100% Cache hit rate</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon danger"><i class="fa-solid fa-circle-xmark"></i></div>
+            <div class="stat-details">
+              <div class="stat-label">Failed Sockets Loops</div>
+              <div class="stat-value text-danger">0.02%</div>
+              <div class="stat-trend up">Stable core health</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analytics Charts Grid -->
+        <div class="analytics-charts-grid">
+          <!-- Area chart: Messages per day -->
+          <div class="card chart-box-card">
+            <div class="card-title">Daily Messages Stream (Last 30 Days)</div>
+            <div class="chart-box-container">
+              <canvas id="messagesPerDayChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Doughnut chart: Commands distribution -->
+          <div class="card chart-box-card">
+            <div class="card-title">Commands Usage categories</div>
+            <div class="chart-box-container">
+              <canvas id="commandsCategoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="analytics-charts-grid mt-24">
+          <!-- Bar chart: AI Requests -->
+          <div class="card chart-box-card">
+            <div class="card-title">Daily AI Query Telemetry</div>
+            <div class="chart-box-container">
+              <canvas id="aiRequestsChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Line chart: Media downloads -->
+          <div class="card chart-box-card">
+            <div class="card-title">Media Downloads (YTDL / Reels)</div>
+            <div class="chart-box-container">
+              <canvas id="downloadsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-layout-grid mt-24" style="grid-template-columns: 2fr 1.2fr;">
+          <!-- Top Commands Table -->
+          <div class="card table-card">
+            <div class="card-title" style="padding: 20px 24px 10px;">Popular Command Triggers</div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Command Name</th>
+                    <th>Category</th>
+                    <th>Average Daily Execution</th>
+                    <th>Uptime Success Rate</th>
+                    <th>Load Severity</th>
+                  </tr>
+                </thead>
+                <tbody id="top-commands-table">
+                  <!-- Populated dynamically by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Groups Joined statistics summary -->
+          <div class="card groups-card">
+            <div class="card-title">Group Channels Overview</div>
+            <div class="groups-summary-panel">
+              <div class="group-metric-row">
+                <span class="group-metric-label">Active Linked WhatsApp Groups:</span>
+                <strong class="text-primary" style="font-size: 20px;">185 groups</strong>
+              </div>
+              <div class="group-metric-row">
+                <span class="group-metric-label">Auto Welcomer Active:</span>
+                <strong class="text-success" style="font-size: 16px;">142 groups (76%)</strong>
+              </div>
+              <div class="group-metric-row">
+                <span class="group-metric-label">Average Group Size:</span>
+                <strong>240 participants</strong>
+              </div>
+            </div>
+            
+            <div class="card-divider" style="margin: 16px 0;"></div>
+            
+            <span class="section-label" style="font-size: 10px;">Recent Group Activity Triggers</span>
+            <ul class="activity-list" id="group-activities-list" style="gap: 12px;">
+              <!-- Populated dynamically by JS -->
+            </ul>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/analytics.js"></script>
+</body>
+</html>

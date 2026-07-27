@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - System Settings</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/settings.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading System Parameters...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Global Settings</h1>
+            <p class="page-subheading font-sans">Configure GURU core engines, commands prefixes, socket loops, and auto-reply preferences.</p>
+          </div>
+          <div>
+            <button class="btn btn-outline btn-sm" onclick="exportBackupSettings()">
+              <i class="fa-solid fa-file-export"></i> Backup Configurations
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-layout-grid">
+          <!-- Left side list links -->
+          <div class="settings-menu-card">
+            <div class="card" style="padding: 10px 0;">
+              <ul class="settings-links-list">
+                <li class="active" onclick="switchSettingsSection('general', this)"><i class="fa-solid fa-gear"></i> General Engine</li>
+                <li onclick="switchSettingsSection('prefix', this)"><i class="fa-solid fa-terminal"></i> Triggers & Prefix</li>
+                <li onclick="switchSettingsSection('owner', this)"><i class="fa-solid fa-user-shield"></i> Owner Privileges</li>
+                <li onclick="switchSettingsSection('automations', this)"><i class="fa-solid fa-bolt"></i> Auto Interactions</li>
+                <li onclick="switchSettingsSection('cache', this)"><i class="fa-solid fa-circle-nodes"></i> Cache & Database</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Right side configurations panels -->
+          <div class="settings-panes-wrapper">
+            <!-- GENERAL SECTION -->
+            <div class="card settings-pane" id="pane-general">
+              <div class="pane-header">
+                <h3 class="pane-title">General Settings</h3>
+                <p class="pane-desc">Basic controls of your hosting environment and languages.</p>
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label" for="setting-lang">Default Bot Language</label>
+                <select class="form-control" id="setting-lang">
+                  <option value="en">English (US/UK)</option>
+                  <option value="pt">Portuguese (Brazil)</option>
+                  <option value="es">Spanish (Latin America)</option>
+                  <option value="hi">Hindi (India)</option>
+                </select>
+                <span class="help-text">Controls standard welcome banners and core automated system prompts.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-tz">System Timezone</label>
+                <select class="form-control" id="setting-tz">
+                  <option value="utc">Coordinated Universal Time (UTC)</option>
+                  <option value="gmt-5">Eastern Time (EST - GMT-5)</option>
+                  <option value="gmt-3">Brasilia Time (BRT - GMT-3)</option>
+                  <option value="gmt+5.5">Indian Standard Time (IST - GMT+5:30)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-node-cap">Max Instances Queue Cap</label>
+                <input class="form-control" type="number" id="setting-node-cap" min="1" max="20" value="5">
+              </div>
+
+              <div class="pane-footer-actions flex-between" style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:24px;">
+                <span class="text-secondary" style="font-size:11px;">*Changes hot-load instantly on save.</span>
+                <button class="btn btn-primary btn-sm" onclick="saveSettingsForm('general')">Save General Settings</button>
+              </div>
+            </div>
+
+            <!-- PREFIX SECTION -->
+            <div class="card settings-pane" id="pane-prefix" style="display:none;">
+              <div class="pane-header">
+                <h3 class="pane-title">Prefix & Trigger Parameters</h3>
+                <p class="pane-desc">Specify default parameters to identify chat triggers.</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-prefix-val">Default Command Prefix</label>
+                <input class="form-control" type="text" id="setting-prefix-val" value="." maxlength="5" required>
+                <span class="help-text">Input command sign (ex: .menu, /menu, !menu). Leave blank to disable prefixes entirely.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-multi-prefix">Enable Multi-Prefix Listener</label>
+                <label class="switch">
+                  <input type="checkbox" id="setting-multi-prefix">
+                  <span class="slider"></span>
+                </label>
+                <span class="help-text">Permits commands to listen to multiple sign formats (. / ! simultaneously).</span>
+              </div>
+
+              <div class="pane-footer-actions flex-between" style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:24px;">
+                <span class="text-secondary" style="font-size:11px;">Prefix edits affect all linked containers.</span>
+                <button class="btn btn-primary btn-sm" onclick="saveSettingsForm('prefix')">Save Prefix Settings</button>
+              </div>
+            </div>
+
+            <!-- OWNER SECTION -->
+            <div class="card settings-pane" id="pane-owner" style="display:none;">
+              <div class="pane-header">
+                <h3 class="pane-title">Owner Privileges Setup</h3>
+                <p class="pane-desc">Manage system administrator numbers that can execute eval/exec commands.</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-owner-num">Primary Admin Phone Number</label>
+                <input class="form-control" type="text" id="setting-owner-num" value="5521998342212" placeholder="e.g. 5521998342212" required>
+                <span class="help-text">Include international country prefix, no spaces, brackets or dashes.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="setting-eval-allowed">Enable Remote Terminal Exec</label>
+                <label class="switch">
+                  <input type="checkbox" id="setting-eval-allowed" checked>
+                  <span class="slider"></span>
+                </label>
+                <span class="help-text">DANGEROUS: Permitting owners to run terminal codes straight from chat lines.</span>
+              </div>
+
+              <div class="pane-footer-actions flex-between" style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:24px;">
+                <span class="text-secondary" style="font-size:11px;">Restricted exclusively to system operators.</span>
+                <button class="btn btn-primary btn-sm" onclick="saveSettingsForm('owner')">Save Owner Settings</button>
+              </div>
+            </div>
+
+            <!-- AUTOMATIONS SECTION -->
+            <div class="card settings-pane" id="pane-automations" style="display:none;">
+              <div class="pane-header">
+                <h3 class="pane-title">Automated Interactions Loops</h3>
+                <p class="pane-desc">Configure passive WhatsApp account tasks to emulate realistic user behavior.</p>
+              </div>
+
+              <div class="automations-list-wrapper">
+                <div class="auto-item-toggle">
+                  <div class="toggle-meta">
+                    <span class="toggle-name">Auto Read Story Statuses</span>
+                    <span class="toggle-desc">Automatically reads status updates of contacts in WhatsApp linked queues.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="setting-auto-read-status" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="auto-item-toggle">
+                  <div class="toggle-meta">
+                    <span class="toggle-name">Auto Typing Indicator</span>
+                    <span class="toggle-desc">Simulates the 'typing...' animation during command compiles in chat groups.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="setting-auto-typing">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="auto-item-toggle">
+                  <div class="toggle-meta">
+                    <span class="toggle-name">Always Online (Ghost Mode)</span>
+                    <span class="toggle-desc">Keeps WhatsApp socket loops broadcasting a persistent online green dot state.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="setting-always-online" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="auto-item-toggle">
+                  <div class="toggle-meta">
+                    <span class="toggle-name">Auto Read Group Messages</span>
+                    <span class="toggle-desc">Automatically triggers blue double check marks instantly when messages drop.</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="setting-auto-read-msg">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="pane-footer-actions flex-between" style="border-top:1px solid var(--border-color); padding-top:20px; margin-top:24px;">
+                <span class="text-secondary" style="font-size:11px;">Prevents WhatsApp session bans.</span>
+                <button class="btn btn-primary btn-sm" onclick="saveSettingsForm('automations')">Save Automation Settings</button>
+              </div>
+            </div>
+
+            <!-- CACHE SECTION -->
+            <div class="card settings-pane" id="pane-cache" style="display:none;">
+              <div class="pane-header">
+                <h3 class="pane-title">Cache & Databases Registry</h3>
+                <p class="pane-desc">Clean databases records, reset user sessions, or purge local cache storage files.</p>
+              </div>
+
+              <div class="cache-cleaners-flex">
+                <div class="cache-clean-item card flex-between" style="padding:16px;">
+                  <div>
+                    <h4 style="font-size:13.5px; font-weight:600;">Media Cache Registers</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Purge temporary audio, sticker files, or thumbnails (3.4 GB currently).</p>
+                  </div>
+                  <button class="btn btn-secondary btn-sm" onclick="purgeCacheFiles('media')">Purge Files</button>
+                </div>
+
+                <div class="cache-clean-item card flex-between" style="padding:16px; margin-top:12px;">
+                  <div>
+                    <h4 style="font-size:13.5px; font-weight:600;">Subscriber Messages Database</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;">Empty subscriber stats and clear the table. Rebuilds on next incoming sockets.</p>
+                  </div>
+                  <button class="btn btn-outline btn-sm text-danger" onclick="purgeCacheFiles('db')" style="border-color:rgba(239,68,68,0.2);">Reset DB</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/settings.js"></script>
+</body>
+</html>

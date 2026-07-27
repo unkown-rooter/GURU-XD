@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Operator Profile</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/profile.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading Operator Details...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Operator Profile</h1>
+            <p class="page-subheading font-sans">Manage your operator credentials, password hashes, and platform API tokens.</p>
+          </div>
+        </div>
+
+        <div class="profile-layout-grid">
+          <!-- Left side: Account details -->
+          <div class="profile-details-pane">
+            <div class="card profile-avatar-card">
+              <div class="avatar-edit-wrapper">
+                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80" alt="Avatar" class="profile-preview-avatar" id="avatar-preview-img">
+                <button class="avatar-edit-btn" onclick="triggerAvatarUpload()"><i class="fa-solid fa-camera"></i></button>
+                <input type="file" id="profile-avatar-input" style="display:none;" accept="image/*" onchange="previewAvatarImage(this)">
+              </div>
+              
+              <h2 class="profile-display-name" id="display-profile-username">GURU-XD ADMIN</h2>
+              <span class="profile-role-badge">SYSTEM DEVELOPER</span>
+            </div>
+
+            <!-- Profile form info card -->
+            <div class="card" style="margin-top:20px;">
+              <div class="card-title">Personal Parameters</div>
+              <form id="profile-info-form">
+                <div class="form-group">
+                  <label class="form-label" for="profile-username">Operator Name</label>
+                  <input class="form-control" type="text" id="profile-username" value="GURU-XD ADMIN" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="profile-email">Developer Email</label>
+                  <input class="form-control" type="email" id="profile-email" value="admin@guru-xd.host" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-sm w-full">Save Changes</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right side: Passwords and API Keys -->
+          <div class="profile-actions-pane">
+            <!-- Password alteration -->
+            <div class="card password-change-card">
+              <div class="card-title">Modify Account Password</div>
+              <form id="profile-password-form">
+                <div class="form-group">
+                  <label class="form-label" for="profile-old-pwd">Current Password</label>
+                  <input class="form-control" type="password" id="profile-old-pwd" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="profile-new-pwd">New Password</label>
+                  <input class="form-control" type="password" id="profile-new-pwd" placeholder="At least 6 characters..." required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="profile-confirm-pwd">Confirm New Password</label>
+                  <input class="form-control" type="password" id="profile-confirm-pwd" required>
+                </div>
+
+                <button type="submit" class="btn btn-outline btn-sm w-full">Update Password</button>
+              </form>
+            </div>
+
+            <!-- API Keys / Tokens Card -->
+            <div class="card api-tokens-card" style="margin-top:24px;">
+              <div class="card-title">System API Credentials</div>
+              <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px;">
+                Credentials required by active plugins to make external requests (GPT/Gemini triggers, cloud backups).
+              </p>
+
+              <div class="api-keys-list-wrapper" id="api-keys-container">
+                <!-- Populated dynamically by JS -->
+              </div>
+
+              <!-- Register dynamic token button -->
+              <button class="btn btn-secondary btn-sm w-full" style="margin-top:16px;" onclick="addNewApiKey()">
+                <i class="fa-solid fa-plus"></i> Register API Secret Key
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD API SECRET MODAL -->
+  <div class="modal-backdrop" id="add-api-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Register API Credential</span>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="add-api-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="api-label">Service Provider Label</label>
+            <input class="form-control" type="text" id="api-label" placeholder="e.g. GEMINI_API_KEY" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="api-secret-val">API Secret Token Key</label>
+            <input class="form-control" type="password" id="api-secret-val" placeholder="Paste your API key token..." required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm modal-close">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Secret</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/profile.js"></script>
+</body>
+</html>

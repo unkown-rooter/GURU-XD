@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Portal Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/login.css">
+</head>
+<body class="auth-body">
+  <!-- Initial Page Loader -->
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading GURU Portal...</div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-bolt text-blue-500"></i>
+        </div>
+        <span class="brand-text">GURU<span class="text-primary">-XD</span></span>
+      </div>
+      
+      <div class="auth-header">
+        <h1>Welcome Back</h1>
+        <p>Enter your credentials to access the bot hosting panel</p>
+      </div>
+
+      <div class="alert alert-info" id="demo-alert">
+        <i class="fa-solid fa-circle-info alert-icon"></i>
+        <span>Demo: Use <strong>admin</strong> / <strong>admin123</strong></span>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="username">Username or Email</label>
+          <div class="input-wrapper">
+            <i class="fa-regular fa-user field-icon"></i>
+            <input class="form-control" type="text" id="username" placeholder="Enter your username" required value="admin">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label-row">
+            <label class="form-label" for="password">Password</label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+          <div class="input-wrapper">
+            <i class="fa-solid fa-lock field-icon"></i>
+            <input class="form-control" type="password" id="password" placeholder="Enter your password" required value="admin123">
+            <button class="password-toggle-btn" type="button" id="password-toggle" aria-label="Toggle password visibility">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label class="checkbox-container">
+            <input type="checkbox" checked id="remember-me">
+            <span class="checkmark"></span>
+            <span class="checkbox-label">Keep me signed in</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary auth-btn" id="submit-btn">
+          <span>Authorize Access</span>
+          <i class="fa-solid fa-right-to-bracket btn-icon"></i>
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Don't have an account? <a href="#" class="signup-link">Create portal account</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/login.js"></script>
+</body>
+</html>

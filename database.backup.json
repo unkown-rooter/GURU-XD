@@ -1,0 +1,1492 @@
+{
+  "bots": [
+    {
+      "id": "bot-1",
+      "name": "GURU-MD WhatsApp",
+      "platform": "WhatsApp",
+      "status": "running",
+      "uptime": "14d 6h 32m",
+      "memory": "142 MB / 512 MB",
+      "cpu": 5.5,
+      "version": "v4.2.1",
+      "commandsCount": 154,
+      "prefix": ".",
+      "qrCode": "GURU-MD-PAIR-KEY:834927_CONNECTED"
+    },
+    {
+      "id": "bot-2",
+      "name": "TG-SpamShield-Pro",
+      "platform": "Telegram",
+      "status": "running",
+      "uptime": "3d 12h 45m",
+      "memory": "89 MB / 256 MB",
+      "cpu": 12.2,
+      "version": "v1.0.8",
+      "commandsCount": 42,
+      "prefix": "/",
+      "qrCode": "TG-PRO-KEY_ACTIVE"
+    },
+    {
+      "id": "bot-3",
+      "name": "Auto-Moderator WhatsApp",
+      "platform": "WhatsApp",
+      "status": "running",
+      "uptime": "22d 1h 10m",
+      "memory": "205 MB / 512 MB",
+      "cpu": 4.1,
+      "version": "v2.1.0",
+      "commandsCount": 68,
+      "prefix": "!",
+      "qrCode": "AUTOMOD-LINKED-SECURE"
+    },
+    {
+      "id": "bot-4",
+      "name": "GURU-Economy-TG",
+      "platform": "Telegram",
+      "status": "stopped",
+      "uptime": "0h 0m",
+      "memory": "0 MB / 256 MB",
+      "cpu": 0,
+      "version": "v3.5.0",
+      "commandsCount": 95,
+      "prefix": "/",
+      "qrCode": "TG-ECON-PAIR-EXPIRED"
+    }
+  ],
+  "commands": [
+    {
+      "id": "cmd-1",
+      "trigger": "help",
+      "prefix": ".",
+      "description": "Displays the list of all available commands and utility manuals.",
+      "category": "Utility",
+      "isActive": true,
+      "code": "// .help handler\nmodule.exports = async (client, message, args) => {\n  const commands = client.commands.map(c => `${client.prefix}${c.trigger} - ${c.description}`);\n  const response = `🤖 *GURU-MD Command Index* 🤖\\n\\n${commands.join('\\n')}`;\n  await client.sendMessage(message.from, response);\n};"
+    },
+    {
+      "id": "cmd-2",
+      "trigger": "alive",
+      "prefix": ".",
+      "description": "Check if the bot instance is active, and shows dynamic system specs.",
+      "category": "Utility",
+      "isActive": true,
+      "code": "// .alive handler\nmodule.exports = async (client, message) => {\n  const uptime = client.getUptime();\n  const resMsg = `🟢 *GURU-MD IS ONLINE* 🟢\\n\\n⚡ Uptime: ${uptime}\\n📱 Platform: Multi-device Node\\n🛠️ Latency: ${Date.now() - message.timestamp * 1000}ms`;\n  await client.sendMessage(message.from, resMsg, { quoted: message });\n};"
+    },
+    {
+      "id": "cmd-3",
+      "trigger": "ai",
+      "prefix": ".",
+      "description": "Ask the integrated Gemini AI to answer questions or write code snippets.",
+      "category": "AI",
+      "isActive": true,
+      "code": "// .ai helper\nconst { GoogleGenAI } = require(\"@google/genai\");\nmodule.exports = async (client, message, args) => {\n  if (!args.length) return message.reply(\"Please provide a prompt! e.g. .ai Write a poem.\");\n  \n  const prompt = args.join(\" \");\n  await client.sendPresenceUpdate(message.from, \"composing\");\n  \n  try {\n    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });\n    const response = await ai.models.generateContent({\n      model: \"gemini-2.5-flash\",\n      contents: prompt,\n    });\n    await client.sendMessage(message.from, response.text);\n  } catch (err) {\n    await client.sendMessage(message.from, \"⚠️ AI Generation failed. Please check host keys.\");\n  }\n};"
+    },
+    {
+      "id": "cmd-4",
+      "trigger": "ban",
+      "prefix": ".",
+      "description": "Bans/kicks a malicious user from the group. (Requires admin).",
+      "category": "Moderation",
+      "isActive": true,
+      "code": "// .ban handler\nmodule.exports = async (client, message) => {\n  if (!message.isGroup) return message.reply(\"This is a group-only action!\");\n  const quoted = message.quoted || message.mentionedJid[0];\n  if (!quoted) return message.reply(\"Tag or quote the user you wish to ban.\");\n  \n  await client.groupParticipantsUpdate(message.from, [quoted], \"remove\");\n  await message.reply(\"🚫 User has been kicked and blacklisted from this chat group.\");\n};"
+    },
+    {
+      "id": "cmd-5",
+      "trigger": "meme",
+      "prefix": ".",
+      "description": "Fetches and displays a funny programmer meme from Reddit API.",
+      "category": "Fun",
+      "isActive": false,
+      "code": "// .meme handler\nconst axios = require(\"axios\");\nmodule.exports = async (client, message) => {\n  try {\n    const res = await axios.get(\"https://meme-api.com/gimme/programmerhumor\");\n    await client.sendMessage(message.from, { image: { url: res.data.url }, caption: res.data.title });\n  } catch (err) {\n    await message.reply(\"Could not retrieve memes at this time. Try again later.\");\n  }\n};"
+    },
+    {
+      "trigger": "quiz",
+      "prefix": ".",
+      "description": "Start a fast-paced chat trivia game with currency awards.",
+      "category": "Economy",
+      "isActive": true,
+      "code": "/**\n * GURU-XD Terminal Copilot V2 - Interactive Trivia Quiz Handler\n * Command: .quiz\n * Description: Initiates a trivia game. The first participant to type the correct answer \n *              wins economy coins. Includes a 30-second timeout.\n * \n * Note: Adjust the database interaction section to match your actual database scheme\n * (e.g., MongoDB, Quick.db, PostgreSQL, or local JSON).\n */\n\n// Global state to track active games per chat session\nif (!global.activeQuizzes) {\n  global.activeQuizzes = new Map();\n}\n\n// Sample trivia dataset (expand or replace with an external API call like OpenTDB if desired)\nconst TRIVIA_DATABASE = [\n  { question: \"What is the capital city of Japan?\", answer: \"tokyo\" },\n  { question: \"Which planet is known as the Red Planet?\", answer: \"mars\" },\n  { question: \"What is the square root of 144?\", answer: \"12\" },\n  { question: \"Who painted the famous 'Mona Lisa'?\", answer: \"leonardo da vinci\" },\n  { question: \"What is the chemical symbol for Gold?\", answer: \"au\" },\n  { question: \"Which ocean is the largest on Earth?\", answer: \"pacific\" },\n  { question: \"How many bones are there in an adult human body?\", answer: \"206\" },\n  { question: \"What is the fastest land animal?\", answer: \"cheetah\" },\n  { question: \"In which year did the Titanic sink?\", answer: \"1912\" },\n  { question: \"Which programming language is known as the backbone of web development?\", answer: \"javascript\" }\n];\n\n// Configuration\nconst REWARD_COINS = 150; // Amount of coins rewarded\nconst TIMEOUT_DURATION = 30000; // 30 seconds to answer\n\nmodule.exports = async (client, message, args) => {\n  // Extract Chat ID and Sender ID depending on library implementation (Baileys/WA-Web.js)\n  const chatId = message.from || message.chat || message.key?.remoteJid;\n  const senderId = message.sender || message.author || message.key?.participant || message.participant;\n\n  if (!chatId) {\n    console.error(\"[QUIZ ERROR] Unable to resolve Chat ID.\");\n    return;\n  }\n\n  // Prevent duplicate concurrent games in the same chat\n  if (global.activeQuizzes.has(chatId)) {\n    const activeMsg = \"⚠️ *A quiz is already active in this chat!* Answer that one before starting a new game.\";\n    return client.sendMessage ? await client.sendMessage(chatId, { text: activeMsg }) : await message.reply(activeMsg);\n  }\n\n  // Select a random trivia question\n  const randomIndex = Math.floor(Math.random() * TRIVIA_DATABASE.length);\n  const quiz = TRIVIA_DATABASE[randomIndex];\n\n  global.activeQuizzes.set(chatId, {\n    question: quiz.question,\n    answer: quiz.answer.toLowerCase().trim(),\n    startTime: Date.now()\n  });\n\n  const invitationMessage = `🧠 *GURU-XD TRIVIA MINI-GAME* 🧠\\n\\n` +\n    `*Question:* ${quiz.question}\\n\\n` +\n    `💰 *Reward:* \\`${REWARD_COINS} Coins\\`\\n` +\n    `⏱️ *Time Limit:* 30 seconds!\\n\\n` +\n    `_Type your answer directly in the chat!_`;\n\n  if (client.sendMessage) {\n    await client.sendMessage(chatId, { text: invitationMessage });\n  } else {\n    await message.reply(invitationMessage);\n  }\n\n  // Define Message Collector Listener\n  const messageListener = async (msg) => {\n    // Ensure message belongs to the current chat\n    const msgChatId = msg.from || msg.chat || msg.key?.remoteJid;\n    if (msgChatId !== chatId) return;\n\n    // Extract text body\n    const text = (msg.body || msg.text || msg.message?.conversation || msg.message?.extendedTextMessage?.text || \"\").toLowerCase().trim();\n    if (!text) return;\n\n    const activeQuiz = global.activeQuizzes.get(chatId);\n    if (!activeQuiz) return;\n\n    // Check if the input matches the correct answer\n    if (text === activeQuiz.answer) {\n      // Clean up game session and remove listener\n      cleanupGame();\n\n      const winnerId = msg.sender || msg.author || msg.key?.participant || msg.participant || senderId;\n      const winnerName = msg.pushName || \"Player\";\n\n      // --- DATABASE INTEGRATION BLOCK ---\n      // Replace the block below with your actual database update code.\n      // Example for a global JSON/object DB structure:\n      try {\n        if (!global.db) global.db = {};\n        if (!global.db.users) global.db.users = {};\n        if (!global.db.users[winnerId]) {\n          global.db.users[winnerId] = { coins: 0, xp: 0 };\n        }\n        \n        // Add coins to ledger\n        global.db.users[winnerId].coins += REWARD_COINS;\n        const currentBalance = global.db.users[winnerId].coins;\n\n        const winMessage = `🎉 *CONGRATULATIONS!* 🎉\\n\\n` +\n          `👤 *Winner:* @${winnerId.split('@')[0]}\\n` +\n          `✅ *Correct Answer:* *${quiz.answer.toUpperCase()}*\\n` +\n          `🪙 *Earned:* +${REWARD_COINS} Coins!\\n` +\n          `🏦 *New Balance:* ${currentBalance} Coins`;\n\n        if (client.sendMessage) {\n          await client.sendMessage(chatId, { \n            text: winMessage, \n            mentions: [winnerId] \n          });\n        } else {\n          await message.reply(winMessage);\n        }\n      } catch (dbErr) {\n        console.error(\"[DATABASE ERROR] Failed to update economy ledger:\", dbErr);\n        const errMessage = `🎉 *Correct!* The answer was *${quiz.answer.toUpperCase()}*.\\n⚠️ Economy ledger database update failed.`;\n        if (client.sendMessage) {\n          await client.sendMessage(chatId, { text: errMessage });\n        } else {\n          await message.reply(errMessage);\n        }\n      }\n    }\n  };\n\n  // Register listener (Adapts dynamically depending on your engine's emitter)\n  const emitter = client.ev || client; \n  const eventName = client.ev ? 'messages.upsert' : 'message';\n\n  // Normalize message interceptor helper\n  const interceptor = async (m) => {\n    // Handle Baileys wrapped structure if applicable\n    if (eventName === 'messages.upsert') {\n      const msgRaw = m.messages[0];\n      if (!msgRaw || msgRaw.key.fromMe) return;\n      await messageListener(msgRaw);\n    } else {\n      if (m.fromMe) return;\n      await messageListener(m);\n    }\n  };\n\n  emitter.on(eventName, interceptor);\n\n  // Set timeout sequence for failure to answer\n  const timeoutId = setTimeout(async () => {\n    if (global.activeQuizzes.has(chatId)) {\n      cleanupGame();\n      const timeOutMsg = `⏰ *TIME'S UP!* ⏰\\n\\nNo one answered correctly in time.\\n📝 *Correct Answer:* *${quiz.answer.toUpperCase()}*`;\n      if (client.sendMessage) {\n        await client.sendMessage(chatId, { text: timeOutMsg });\n      } else {\n        await message.reply(timeOutMsg);\n      }\n    }\n  }, TIMEOUT_DURATION);\n\n  // Game state cleanup routine\n  function cleanupGame() {\n    clearTimeout(timeoutId);\n    emitter.off(eventName, interceptor);\n    global.activeQuizzes.delete(chatId);\n  }\n};",
+      "id": "cmd-1784482936663"
+    },
+    {
+      "trigger": "custom_ai",
+      "prefix": ".",
+      "description": "AI Copilot generated command",
+      "category": "AI",
+      "isActive": true,
+      "code": "/**\n * GURU-XD Terminal Command: Menu / Help Command List\n * Description: Dynamically lists and categories all registered system commands.\n */\n\nmodule.exports = async (client, message, args) => {\n  try {\n    // 1. Fetch registered commands from core instance (assuming Map/Object collection)\n    const commands = client.commands;\n\n    if (!commands || (commands instanceof Map ? commands.size === 0 : Object.keys(commands).length === 0)) {\n      const errorMsg = \"❌ *System Error:* Command registry is empty or inaccessible.\";\n      return await sendMessage(client, message, errorMsg);\n    }\n\n    // 2. Initialize metadata\n    const botName = client.user?.name || \"GURU-XD BOT\";\n    const uptime = process.uptime();\n    const formattedUptime = formatUptime(uptime);\n    \n    // 3. Group commands by category\n    const categories = {};\n    \n    // Support both Map collection and Standard Object registry\n    const commandList = commands instanceof Map ? Array.from(commands.values()) : Object.values(commands);\n\n    commandList.forEach((cmd) => {\n      // Prevent mapping duplicate aliases\n      if (cmd.alias && cmd.alias.includes(cmd.name)) return; \n      \n      const category = cmd.category ? cmd.category.toUpperCase() : \"GENERAL\";\n      if (!categories[category]) {\n        categories[category] = [];\n      }\n      \n      if (!categories[category].some(c => c.name === cmd.name)) {\n        categories[category].push({\n          name: cmd.name,\n          description: cmd.description || \"No description provided.\"\n        });\n      }\n    });\n\n    // 4. Construct terminal-styled layout\n    let menuHeader = `╭━━━〔 *${botName}* 〕━━━┈\\n`;\n    menuHeader += `┃ 🖥️ *OS*: Node.js ${process.version}\\n`;\n    menuHeader += `┃ ⏱️ *Uptime*: ${formattedUptime}\\n`;\n    menuHeader += `┃ 📊 *Commands Loaded*: ${commandList.length}\\n`;\n    menuHeader += `╰━━━━━━━━━━━━━━━━━━━━┈\\n\\n`;\n\n    let menuBody = \"\";\n    for (const [category, list] of Object.entries(categories)) {\n      menuBody += `┌───〔 *${category}* 〕\\n`;\n      list.forEach((cmd) => {\n        menuBody += `│  🛠️ *.${cmd.name}* \\n`;\n      });\n      menuBody += `└──────────────┈\\n\\n`;\n    }\n\n    const menuFooter = `_💡 Note: Use command prefix [. / !] followed by command name._`;\n    const finalMenu = menuHeader + menuBody + menuFooter;\n\n    // 5. Send message (supports WhatsApp Baileys or Telegram context wrappers)\n    await sendMessage(client, message, finalMenu);\n\n  } catch (error) {\n    console.error(\"GURU-XD SYSTEM ERROR (Menu handler):\", error);\n    await sendMessage(client, message, \"⚠️ *Error: Internal Terminal module failed to load Menu.*\");\n  }\n};\n\n/**\n * Universal sender helper adapting to WhatsApp/Telegram abstractions\n */\nasync function sendMessage(client, msg, text) {\n  const target = msg.key?.remoteJid || msg.chat || msg.from;\n  if (client.sendMessage) {\n    return await client.sendMessage(target, { text: text }, { quoted: msg });\n  } else if (msg.reply) {\n    return await msg.reply(text);\n  }\n}\n\n/**\n * System Uptime Formatter\n */\nfunction formatUptime(seconds) {\n  const h = Math.floor(seconds / 3600);\n  const m = Math.floor((seconds % 3600) / 60);\n  const s = Math.floor(seconds % 60);\n  return `${h}h ${m}m ${s}s`;\n}",
+      "id": "cmd-1784486022085"
+    }
+  ],
+  "files": [
+    {
+      "name": "src",
+      "path": "/src",
+      "isDirectory": true
+    },
+    {
+      "name": "commands",
+      "path": "/commands",
+      "isDirectory": true
+    },
+    {
+      "name": "config.json",
+      "path": "/config.json",
+      "isDirectory": false,
+      "size": "2.4 KB",
+      "content": "{\n  \"sessionName\": \"guru_session\",\n  \"autoRead\": true,\n  \"alwaysOnline\": true,\n  \"admins\": [\"2348123456789@s.whatsapp.net\"],\n  \"gcast\": false,\n  \"reconnectDelay\": 5000,\n  \"max_sessions\": 5,\n  \"features\": {\n    \"welcome_message\": true,\n    \"anti_link\": false,\n    \"chatbot\": true\n  }\n}"
+    },
+    {
+      "name": "package.json",
+      "path": "/package.json",
+      "isDirectory": false,
+      "size": "1.2 KB",
+      "content": "{\n  \"name\": \"guru-bot-instance\",\n  \"version\": \"1.0.0\",\n  \"description\": \"WhatsApp bot automated client\",\n  \"main\": \"src/index.js\",\n  \"scripts\": {\n    \"start\": \"node src/index.js\"\n  },\n  \"dependencies\": {\n    \"@whiskeysockets/baileys\": \"^6.5.0\",\n    \"pino\": \"^8.16.0\",\n    \"qrcode-terminal\": \"^0.12.0\",\n    \"axios\": \"^1.6.0\"\n  }\n}"
+    },
+    {
+      "name": "src/index.js",
+      "path": "/src/index.js",
+      "isDirectory": false,
+      "size": "4.8 KB",
+      "content": "const { default: makeWASocket, useMultiFileAuthState } = require(\"@whiskeysockets/baileys\");\nconst pino = require(\"pino\");\n\nasync function startBot() {\n  const { state, saveCreds } = await useMultiFileAuthState('session_auth');\n  const sock = makeWASocket({\n    auth: state,\n    logger: pino({ level: 'silent' }),\n    printQRInTerminal: true\n  });\n  \n  sock.ev.on('creds.update', saveCreds);\n  sock.ev.on('messages.upsert', async m => {\n    // Command orchestration loop\n  });\n  console.log(\"GURU Bot Initialized successfully.\");\n}\nstartBot();"
+    },
+    {
+      "name": "commands/ping.js",
+      "path": "/commands/ping.js",
+      "isDirectory": false,
+      "size": "0.4 KB",
+      "content": "module.exports = {\n  name: 'ping',\n  execute(client, msg) {\n    msg.reply('pong! 🏓');\n  }\n};"
+    }
+  ],
+  "plugins": [
+    {
+      "id": "plg-1",
+      "name": "Gemini Auto-Responder",
+      "description": "Enables real-time, smart context-aware conversational chat responses using Google Gemini Flash.",
+      "category": "Integrations",
+      "installed": true,
+      "author": "GURU team",
+      "rating": 4.9,
+      "downloads": "18.4k",
+      "version": "v2.0.1"
+    },
+    {
+      "id": "plg-2",
+      "name": "Anti-Link System",
+      "description": "Instantly delete and ban users who send promotional links, telegram channels, or group invites.",
+      "category": "Automation",
+      "installed": true,
+      "author": "SecOps-Admin",
+      "rating": 4.7,
+      "downloads": "12.1k",
+      "version": "v1.4.0"
+    },
+    {
+      "id": "plg-3",
+      "name": "Economy Leveling System",
+      "description": "Gamify your community chats! Users earn coins, exp, levels, and ranks by sending active messages.",
+      "category": "Entertainment",
+      "installed": false,
+      "author": "RPG-Core",
+      "rating": 4.8,
+      "downloads": "9.3k",
+      "version": "v3.1.2"
+    },
+    {
+      "id": "plg-4",
+      "name": "Welcome Greet Cards",
+      "description": "Generates gorgeous visual background greeting image cards dynamically when a new user joins a group.",
+      "category": "Automation",
+      "installed": false,
+      "author": "GURU team",
+      "rating": 4.6,
+      "downloads": "25.6k",
+      "version": "v1.2.5"
+    },
+    {
+      "id": "plg-5",
+      "name": "Database Backup Sync",
+      "description": "Automatically back up your chats, economy ledger, and media assets daily to Secure Cloud Storage.",
+      "category": "Admin",
+      "installed": false,
+      "author": "BackupOps",
+      "rating": 4.5,
+      "downloads": "5.2k",
+      "version": "v1.0.1"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess-1",
+      "device": "Node-WA Server (Linux)",
+      "location": "London, UK",
+      "activeAt": "Just Now",
+      "status": "connected",
+      "ip": "142.250.200.46"
+    },
+    {
+      "id": "sess-2",
+      "device": "Chrome v122 (Windows 11)",
+      "location": "New York, US",
+      "activeAt": "5 minutes ago",
+      "status": "connected",
+      "ip": "198.51.100.22"
+    },
+    {
+      "id": "sess-3",
+      "device": "iPhone 15 Pro Max (iOS)",
+      "location": "Paris, FR",
+      "activeAt": "12 hours ago",
+      "status": "disconnected",
+      "ip": "82.16.205.101"
+    },
+    {
+      "id": "sess-4",
+      "device": "Redmi Note 12 (Android)",
+      "location": "Mumbai, IN",
+      "activeAt": "Yesterday",
+      "status": "pending",
+      "ip": "103.45.162.77"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-1",
+      "username": "admin",
+      "email": "admin@guru-xd.com",
+      "role": "Administrator",
+      "status": "active",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      "id": "usr-2",
+      "username": "alex_dev",
+      "email": "alex@guru-xd.com",
+      "role": "Developer",
+      "status": "active",
+      "avatar": "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      "id": "usr-3",
+      "username": "jane_moderator",
+      "email": "jane@guru-xd.com",
+      "role": "Viewer",
+      "status": "active",
+      "avatar": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      "id": "usr-4",
+      "username": "guest_test",
+      "email": "test@guru-xd.com",
+      "role": "Viewer",
+      "status": "suspended",
+      "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80"
+    },
+    {
+      "id": "usr-1784482759307",
+      "username": "01",
+      "email": "unknownrooter7@gmail.com",
+      "role": "Administrator",
+      "status": "active",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80",
+      "password": "123456789ian@#$"
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1784484156629-877",
+      "timestamp": "18:02:36",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484176629-42",
+      "timestamp": "18:02:56",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484196629-368",
+      "timestamp": "18:03:16",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484216630-168",
+      "timestamp": "18:03:36",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484236630-956",
+      "timestamp": "18:03:56",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484256631-948",
+      "timestamp": "18:04:16",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484270016-687",
+      "timestamp": "18:04:30",
+      "type": "info",
+      "source": "MONGODB",
+      "message": "Establishing secure tunnel to cluster: mongodb+srv://admin_dashboard:••••••••@cluster0.umaxkpv.mongodb.net/?appName=Cluster0..."
+    },
+    {
+      "id": "log-1784484271017-806",
+      "timestamp": "18:04:31",
+      "type": "success",
+      "source": "MONGODB",
+      "message": "Established active Mongoose socket connection to cluster database [production]. Topology OK."
+    },
+    {
+      "id": "log-1784484272077-586",
+      "timestamp": "18:04:32",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784484276632-346",
+      "timestamp": "18:04:36",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484296633-304",
+      "timestamp": "18:04:56",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484316632-489",
+      "timestamp": "18:05:16",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784484336633-47",
+      "timestamp": "18:05:36",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484356634-425",
+      "timestamp": "18:05:56",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484376635-732",
+      "timestamp": "18:06:16",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484396636-793",
+      "timestamp": "18:06:36",
+      "type": "warning",
+      "source": "GURU-MD_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484416638-670",
+      "timestamp": "18:06:56",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484436639-742",
+      "timestamp": "18:07:16",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484456640-438",
+      "timestamp": "18:07:36",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784484476641-65",
+      "timestamp": "18:07:56",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484496642-69",
+      "timestamp": "18:08:16",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484516643-948",
+      "timestamp": "18:08:36",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784484536644-125",
+      "timestamp": "18:08:56",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484542556-433",
+      "timestamp": "18:09:02",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784484556646-572",
+      "timestamp": "18:09:16",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784484576646-720",
+      "timestamp": "18:09:36",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484596647-26",
+      "timestamp": "18:09:56",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484616647-970",
+      "timestamp": "18:10:16",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484636647-989",
+      "timestamp": "18:10:36",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784484656648-154",
+      "timestamp": "18:10:56",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484676649-561",
+      "timestamp": "18:11:16",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484696650-415",
+      "timestamp": "18:11:36",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784484716651-128",
+      "timestamp": "18:11:56",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784484736652-391",
+      "timestamp": "18:12:16",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484756652-335",
+      "timestamp": "18:12:36",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484800876-475",
+      "timestamp": "18:13:20",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484820878-139",
+      "timestamp": "18:13:40",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784484840879-937",
+      "timestamp": "18:14:00",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484860880-345",
+      "timestamp": "18:14:20",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484880880-968",
+      "timestamp": "18:14:40",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784484900880-56",
+      "timestamp": "18:15:00",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484920880-488",
+      "timestamp": "18:15:20",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784484940880-0",
+      "timestamp": "18:15:40",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784484960880-37",
+      "timestamp": "18:16:00",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784484980882-798",
+      "timestamp": "18:16:20",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784485000882-83",
+      "timestamp": "18:16:40",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485020883-111",
+      "timestamp": "18:17:00",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784485040883-126",
+      "timestamp": "18:17:20",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485060884-279",
+      "timestamp": "18:17:40",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485080885-700",
+      "timestamp": "18:18:00",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784485100886-420",
+      "timestamp": "18:18:20",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485113372-338",
+      "timestamp": "18:18:33",
+      "type": "error",
+      "source": "SECURITY",
+      "message": "Administrative session lease expired. Access key revoked."
+    },
+    {
+      "id": "log-1784485113375-2",
+      "timestamp": "18:18:33",
+      "type": "error",
+      "source": "SECURITY",
+      "message": "Administrative session lease expired. Access key revoked."
+    },
+    {
+      "id": "log-1784485120887-245",
+      "timestamp": "18:18:40",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485140888-162",
+      "timestamp": "18:19:00",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485160888-518",
+      "timestamp": "18:19:20",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485180889-535",
+      "timestamp": "18:19:40",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784485200889-651",
+      "timestamp": "18:20:00",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485220889-403",
+      "timestamp": "18:20:20",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485240890-758",
+      "timestamp": "18:20:40",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485288819-903",
+      "timestamp": "18:21:28",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784485308819-68",
+      "timestamp": "18:21:48",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485328820-749",
+      "timestamp": "18:22:08",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485348821-78",
+      "timestamp": "18:22:28",
+      "type": "warning",
+      "source": "GURU-MD_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784485368822-118",
+      "timestamp": "18:22:48",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485388823-586",
+      "timestamp": "18:23:08",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485408824-128",
+      "timestamp": "18:23:28",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485428825-375",
+      "timestamp": "18:23:48",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485448826-495",
+      "timestamp": "18:24:08",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784485468827-59",
+      "timestamp": "18:24:28",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485488827-748",
+      "timestamp": "18:24:48",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784485508827-906",
+      "timestamp": "18:25:08",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784485528828-752",
+      "timestamp": "18:25:28",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485534235-823",
+      "timestamp": "18:25:34",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784485540535-234",
+      "timestamp": "18:25:40",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784485546912-489",
+      "timestamp": "18:25:46",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784485548830-533",
+      "timestamp": "18:25:48",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485568830-71",
+      "timestamp": "18:26:08",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485588831-351",
+      "timestamp": "18:26:28",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485608832-96",
+      "timestamp": "18:26:48",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485628832-658",
+      "timestamp": "18:27:08",
+      "type": "warning",
+      "source": "TG-SPAMSHIELD-PRO/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784485648833-266",
+      "timestamp": "18:27:28",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485659589-343",
+      "timestamp": "18:27:39",
+      "type": "info",
+      "source": "SYSTEM",
+      "message": "Telemetry metrics synced across hypervisor clusters."
+    },
+    {
+      "id": "log-1784485668833-337",
+      "timestamp": "18:27:48",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485688834-271",
+      "timestamp": "18:28:08",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485708834-499",
+      "timestamp": "18:28:28",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485728835-819",
+      "timestamp": "18:28:48",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485739836-208",
+      "timestamp": "18:28:59",
+      "type": "success",
+      "source": "SECURITY",
+      "message": "Administrative session lease renewed by user request."
+    },
+    {
+      "id": "log-1784485748836-484",
+      "timestamp": "18:29:08",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784485768837-444",
+      "timestamp": "18:29:28",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485788838-483",
+      "timestamp": "18:29:48",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485808838-254",
+      "timestamp": "18:30:08",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784485828839-700",
+      "timestamp": "18:30:28",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485828919-171",
+      "timestamp": "18:30:28",
+      "type": "command",
+      "source": "PORTAL_SHELL",
+      "message": "Running command query: [.alive]"
+    },
+    {
+      "id": "log-1784485829711-70",
+      "timestamp": "18:30:29",
+      "type": "success",
+      "source": "GURU-MD",
+      "message": "[SUCCESS] .alive executed. Action: \"Check if the bot instance is active, and shows dynamic system specs.\". Output Code: [Compiled module successfully returned callback]"
+    },
+    {
+      "id": "log-1784485843574-209",
+      "timestamp": "18:30:43",
+      "type": "command",
+      "source": "PORTAL_SHELL",
+      "message": "Running command query: [.menu]"
+    },
+    {
+      "id": "log-1784485844397-379",
+      "timestamp": "18:30:44",
+      "type": "error",
+      "source": "SYSTEM",
+      "message": "Unknown command or syntax exception: \".menu\". Type \".help\" to view triggers."
+    },
+    {
+      "id": "log-1784485848840-92",
+      "timestamp": "18:30:48",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485868840-330",
+      "timestamp": "18:31:08",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485888841-407",
+      "timestamp": "18:31:28",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784485908842-909",
+      "timestamp": "18:31:48",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485928843-958",
+      "timestamp": "18:32:08",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784485948844-922",
+      "timestamp": "18:32:28",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784485968845-946",
+      "timestamp": "18:32:48",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784485982135-598",
+      "timestamp": "18:33:02",
+      "type": "success",
+      "source": "SECURITY",
+      "message": "Administrative session lease renewed by user request."
+    },
+    {
+      "id": "log-1784485988846-155",
+      "timestamp": "18:33:08",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784486008847-940",
+      "timestamp": "18:33:28",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784486022085-937",
+      "timestamp": "18:33:42",
+      "type": "success",
+      "source": "COMPILER",
+      "message": "Compiled and registered custom message trigger handler: \".custom_ai\""
+    },
+    {
+      "id": "log-1784486022111-637",
+      "timestamp": "18:33:42",
+      "type": "success",
+      "source": "HOT_DEPLOY",
+      "message": "Hot-loaded Custom V2 Module [.custom_ai] directly into the system register."
+    },
+    {
+      "id": "log-1784486028848-47",
+      "timestamp": "18:33:48",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784486048849-717",
+      "timestamp": "18:34:08",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784486049922-246",
+      "timestamp": "18:34:09",
+      "type": "command",
+      "source": "PORTAL_SHELL",
+      "message": "Running command query: [.menu]"
+    },
+    {
+      "id": "log-1784486050842-670",
+      "timestamp": "18:34:10",
+      "type": "error",
+      "source": "SYSTEM",
+      "message": "Unknown command or syntax exception: \".menu\". Type \".help\" to view triggers."
+    },
+    {
+      "id": "log-1784486068850-776",
+      "timestamp": "18:34:28",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784486069935-813",
+      "timestamp": "18:34:29",
+      "type": "command",
+      "source": "PORTAL_SHELL",
+      "message": "Running command query: [.help]"
+    },
+    {
+      "id": "log-1784486070710-78",
+      "timestamp": "18:34:30",
+      "type": "success",
+      "source": "GURU-MD",
+      "message": "[SUCCESS] .help executed. Action: \"Displays the list of all available commands and utility manuals.\". Output Code: [Compiled module successfully returned callback]"
+    },
+    {
+      "id": "log-1784486088851-751",
+      "timestamp": "18:34:48",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784486108852-45",
+      "timestamp": "18:35:08",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784486128852-811",
+      "timestamp": "18:35:28",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784486148853-332",
+      "timestamp": "18:35:48",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784486168854-421",
+      "timestamp": "18:36:08",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784486188855-403",
+      "timestamp": "18:36:28",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784486208855-143",
+      "timestamp": "18:36:48",
+      "type": "warning",
+      "source": "TG-SPAMSHIELD-PRO/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784486224268-444",
+      "timestamp": "18:37:04",
+      "type": "success",
+      "source": "SECURITY",
+      "message": "Administrative session lease renewed by user request."
+    },
+    {
+      "id": "log-1784486228856-245",
+      "timestamp": "18:37:08",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784486248856-906",
+      "timestamp": "18:37:28",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784486265930-712",
+      "timestamp": "18:37:45",
+      "type": "success",
+      "source": "SYSTEM",
+      "message": "Hypervisor microservice architecture upgraded to core build v2.1.0 (Module separation completed)."
+    },
+    {
+      "id": "log-1784486285937-564",
+      "timestamp": "18:38:05",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784486305938-277",
+      "timestamp": "18:38:25",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784486325939-913",
+      "timestamp": "18:38:45",
+      "type": "warning",
+      "source": "GURU-MD_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784486362767-990",
+      "timestamp": "18:39:22",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784486382768-441",
+      "timestamp": "18:39:42",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784486402769-325",
+      "timestamp": "18:40:02",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784486422770-978",
+      "timestamp": "18:40:22",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784486442771-247",
+      "timestamp": "18:40:42",
+      "type": "warning",
+      "source": "GURU-MD_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784628766394-243",
+      "timestamp": "10:12:46",
+      "type": "success",
+      "source": "TG-SPAMSHIELD-PRO/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784628786394-175",
+      "timestamp": "10:13:06",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784628806395-597",
+      "timestamp": "10:13:26",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784628826395-774",
+      "timestamp": "10:13:46",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784628846396-902",
+      "timestamp": "10:14:06",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784628866397-681",
+      "timestamp": "10:14:26",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784628886398-645",
+      "timestamp": "10:14:46",
+      "type": "success",
+      "source": "GURU-MD_WHATSAPP/HANDLER",
+      "message": "Handled message update trigger [.alive] successfully in 45ms."
+    },
+    {
+      "id": "log-1784628906399-654",
+      "timestamp": "10:15:06",
+      "type": "info",
+      "source": "TG-SPAMSHIELD-PRO/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    },
+    {
+      "id": "log-1784628926400-322",
+      "timestamp": "10:15:26",
+      "type": "info",
+      "source": "GURU-MD_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784628946401-605",
+      "timestamp": "10:15:46",
+      "type": "success",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Socket tunnel connection stabilized. Retrying queued messages buffer."
+    },
+    {
+      "id": "log-1784628966402-619",
+      "timestamp": "10:16:06",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/COMPILER",
+      "message": "Reloaded custom user scripts successfully without core service interruption."
+    },
+    {
+      "id": "log-1784628986402-523",
+      "timestamp": "10:16:26",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/DB_STREAM",
+      "message": "Flushed transient user message schemas into local storage."
+    },
+    {
+      "id": "log-1784629006402-250",
+      "timestamp": "10:16:46",
+      "type": "warning",
+      "source": "AUTO-MODERATOR_WHATSAPP/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784629026410-812",
+      "timestamp": "10:17:06",
+      "type": "warning",
+      "source": "TG-SPAMSHIELD-PRO/CONNECTION",
+      "message": "Network jitter detected. Re-establishing secure duplex tunnel..."
+    },
+    {
+      "id": "log-1784629046411-816",
+      "timestamp": "10:17:26",
+      "type": "info",
+      "source": "AUTO-MODERATOR_WHATSAPP/GATEWAY",
+      "message": "Successfully synchronized socket handshake with chat provider server."
+    }
+  ],
+  "subscription": {
+    "tier": "PREMIUM VIP",
+    "hostedLimit": "20 Instances",
+    "renewalDate": "2027-02-15",
+    "storageLimit": "100 GB SSD",
+    "price": "$29/mo",
+    "isUpgraded": false
+  },
+  "mongoConfig": {
+    "uri": "mongodb+srv://admin_dashboard:<mongoDB54321ognom102>@cluster0.umaxkpv.mongodb.net/?appName=Cluster0",
+    "isConnected": true
+  },
+  "mongoSchemas": [
+    {
+      "id": "schema-1",
+      "name": "User",
+      "description": "Guru-XD Portal administrator and subscriber user accounts ledger.",
+      "fields": [
+        {
+          "name": "username",
+          "type": "String",
+          "required": true,
+          "unique": true,
+          "defaultValue": ""
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "password",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "role",
+          "type": "String",
+          "required": false,
+          "unique": false,
+          "defaultValue": "user"
+        },
+        {
+          "name": "createdAt",
+          "type": "Date",
+          "required": true,
+          "unique": false,
+          "defaultValue": "Date.now"
+        }
+      ]
+    },
+    {
+      "id": "schema-2",
+      "name": "BotInstance",
+      "description": "Active clusters of Discord, WhatsApp, and Telegram worker bots.",
+      "fields": [
+        {
+          "name": "name",
+          "type": "String",
+          "required": true,
+          "unique": true,
+          "defaultValue": ""
+        },
+        {
+          "name": "platform",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "status",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": "offline"
+        },
+        {
+          "name": "uptime",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "defaultValue": "0"
+        },
+        {
+          "name": "lastActive",
+          "type": "Date",
+          "required": false,
+          "unique": false,
+          "defaultValue": "Date.now"
+        }
+      ]
+    },
+    {
+      "id": "schema-3",
+      "name": "CommandLog",
+      "description": "Telemetry logs recording real-time dispatched commands across gateways.",
+      "fields": [
+        {
+          "name": "commandName",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "executor",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "platform",
+          "type": "String",
+          "required": true,
+          "unique": false,
+          "defaultValue": ""
+        },
+        {
+          "name": "executionTimeMs",
+          "type": "Number",
+          "required": false,
+          "unique": false,
+          "defaultValue": "0"
+        },
+        {
+          "name": "timestamp",
+          "type": "Date",
+          "required": true,
+          "unique": false,
+          "defaultValue": "Date.now"
+        }
+      ]
+    }
+  ],
+  "retentionPolicy": {
+    "autoClear7Days": false,
+    "maxLogEntries": 150
+  },
+  "maintenanceMode": false
+}

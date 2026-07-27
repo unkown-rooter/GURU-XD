@@ -1,0 +1,62 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Terminal Logs Specific Styles
+ */
+
+.terminal-header-card {
+  margin-bottom: 16px;
+  padding: 16px 20px;
+}
+
+.terminal-controls-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.terminal-controls-wrapper .toggle-control-item {
+  display: flex;
+  align-items: center;
+}
+
+/* Terminal Canvas Box styling */
+.terminal-canvas-card {
+  background-color: #03060d;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.terminal-body {
+  height: calc(100vh - 320px);
+  min-height: 450px;
+  padding: 20px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: #B2C2D9;
+}
+
+.terminal-footer-line {
+  background-color: #050912;
+  border-top: 1px solid var(--border-color);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.terminal-node-id i {
+  margin-right: 6px;
+}
+
+.terminal-status {
+  display: flex;
+  align-items: center;
+}

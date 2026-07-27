@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Commands Controller</title>
+  <link class="stylesheet" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/commands.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading Commands Matrix...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Commands Manager</h1>
+            <p class="page-subheading font-sans">Enable or disable individual bot triggers and review usage statistics.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary btn-sm" onclick="addNewCommand()">
+              <i class="fa-solid fa-plus"></i> Add Command
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters bar -->
+        <div class="card commands-filter-card">
+          <div class="commands-filter-grid">
+            <div class="search-input-group">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" placeholder="Search commands, descriptions, aliases..." id="cmd-search">
+            </div>
+            
+            <div class="category-selectors">
+              <button class="category-chip active" onclick="filterCategory('all')" id="chip-all">All Commands</button>
+              <button class="category-chip" onclick="filterCategory('AI')" id="chip-AI">AI</button>
+              <button class="category-chip" onclick="filterCategory('Downloads')" id="chip-Downloads">Downloads</button>
+              <button class="category-chip" onclick="filterCategory('Groups')" id="chip-Groups">Groups</button>
+              <button class="category-chip" onclick="filterCategory('Owner')" id="chip-Owner">Owner</button>
+              <button class="category-chip" onclick="filterCategory('Utilities')" id="chip-Utilities">Utilities</button>
+              <button class="category-chip" onclick="filterCategory('Fun')" id="chip-Fun">Fun</button>
+              <button class="category-chip" onclick="filterCategory('Settings')" id="chip-Settings">Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid layout for commands -->
+        <div class="commands-layout-grid" id="commands-container">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD COMMAND MODAL -->
+  <div class="modal-backdrop" id="add-cmd-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Register New Command</span>
+        <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="add-cmd-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="cmd-name">Command Trigger (ex: .menu)</label>
+            <input class="form-control" type="text" id="cmd-name" placeholder="e.g. .ytmp3" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="cmd-category">Category</label>
+            <select class="form-control" id="cmd-category">
+              <option value="AI">AI</option>
+              <option value="Downloads">Downloads</option>
+              <option value="Groups">Groups</option>
+              <option value="Owner">Owner</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Fun">Fun</option>
+              <option value="Settings">Settings</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cmd-desc">Description</label>
+            <textarea class="form-control" id="cmd-desc" rows="3" placeholder="Briefly explain what this command executes..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-sm modal-close">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add Command</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/commands.js"></script>
+</body>
+</html>

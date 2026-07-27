@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Plugins Portal</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/plugins.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading Plugins Registry...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Plugins & Extensions</h1>
+            <p class="page-subheading font-sans">Extend GURU features by importing community packages or uploading custom JS modules.</p>
+          </div>
+          <div>
+            <button class="btn btn-primary btn-sm" onclick="triggerUploadModal()">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload Plugin (.js)
+            </button>
+          </div>
+        </div>
+
+        <div class="plugins-layout-grid">
+          <!-- Main Content: Installed & Marketplace -->
+          <div class="plugins-content-section">
+            <div class="tabs-header" style="margin-bottom: 20px;">
+              <button class="tab-btn active" id="installed-tab-btn" onclick="switchPluginTab('installed')">
+                <i class="fa-solid fa-folder-closed"></i> Installed Modules (6)
+              </button>
+              <button class="tab-btn" id="market-tab-btn" onclick="switchPluginTab('market')">
+                <i class="fa-solid fa-store"></i> Extension Marketplace
+              </button>
+            </div>
+
+            <!-- Installed Tab -->
+            <div class="plugin-tab-content" id="installed-tab-content">
+              <div class="cards-list-grid" id="installed-plugins-container">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Marketplace Tab -->
+            <div class="plugin-tab-content" id="market-tab-content" style="display: none;">
+              <div class="marketplace-search-row">
+                <input class="form-control" type="text" id="market-search" placeholder="Search marketplace by tags, developer or name..." oninput="renderMarketplace()">
+              </div>
+              <div class="cards-list-grid" id="market-plugins-container">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar upload card -->
+          <div class="plugins-sidebar-section">
+            <div class="card upload-card">
+              <div class="card-title">Upload Custom Module</div>
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 16px;">
+                Import a standalone JavaScript file containing your custom command structure. GURU-XD handles dynamic hot-loading on save.
+              </p>
+              
+              <!-- Drag and drop container -->
+              <div class="drag-drop-area" id="plugin-drag-area">
+                <i class="fa-solid fa-file-code upload-icon"></i>
+                <span class="upload-title">Drag & Drop plugin file here</span>
+                <span class="upload-sub">or click to browse local folders</span>
+                <span class="upload-constraint">Supports: standalone .js files (Max 5MB)</span>
+                <input type="file" id="plugin-file-input" style="display: none;" accept=".js">
+              </div>
+
+              <div id="upload-status-box" style="display: none; margin-top: 16px;">
+                <!-- Filled dynamically by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/plugins.js"></script>
+</body>
+</html>

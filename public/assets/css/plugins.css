@@ -1,0 +1,158 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Plugins Page Specific Styles
+ */
+
+.plugins-layout-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1100px) {
+  .plugins-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Card list grid */
+.cards-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.plugin-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.plugin-head-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.plugin-meta-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.plugin-display-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.plugin-version-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.plugin-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  flex: 1;
+}
+
+.plugin-author-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.plugin-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.plugin-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Marketplace Search */
+.marketplace-search-row {
+  margin-bottom: 16px;
+}
+
+/* Drag & Drop Area */
+.drag-drop-area {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 40px 20px;
+  text-align: center;
+  background-color: rgba(18, 24, 38, 0.2);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.drag-drop-area:hover, .drag-drop-area.dragover {
+  border-color: var(--primary-color);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.upload-icon {
+  font-size: 32px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.drag-drop-area:hover .upload-icon {
+  color: var(--primary-color);
+  transform: translateY(-4px);
+  transition: transform var(--transition-fast);
+}
+
+.upload-title {
+  font-size: 14px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.upload-constraint {
+  font-size: 10px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Upload Status Box */
+.uploaded-success-box {
+  background-color: rgba(34, 197, 94, 0.05);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.uploaded-icon {
+  color: var(--success-color);
+  font-size: 18px;
+}

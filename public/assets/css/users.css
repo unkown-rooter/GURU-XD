@@ -1,0 +1,117 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Users Database Specific Styles
+ */
+
+.users-filter-card {
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .users-filter-card .filter-flex-row {
+    flex-direction: column !important;
+  }
+}
+
+.user-cell-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-circle {
+  width: 36px;
+  height: 36px;
+  background-color: rgba(44, 59, 85, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color);
+  overflow: hidden;
+}
+
+.user-cell-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-cell-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.user-cell-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.user-phone-code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: #E2E8F0;
+}
+
+.user-groups-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.user-groups-badge i {
+  color: var(--primary-color);
+}
+
+.user-msg-counter {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.user-last-seen-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.user-last-seen-time {
+  color: var(--text-secondary);
+}
+
+.badge-blocked {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color);
+}
+
+.badge-member {
+  background-color: rgba(148, 163, 184, 0.1);
+  color: var(--text-secondary);
+}
+
+.badge-admin {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: var(--success-color);
+}
+
+.table-card .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}

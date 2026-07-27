@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Sessions Pairing</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/sessions.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading Security Sockets...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header">
+          <h1 class="page-heading">Session Authenticator</h1>
+          <p class="page-subheading font-sans">Pair and manage physical node connections for WhatsApp Multi-Device sockets.</p>
+        </div>
+
+        <div class="sessions-layout-grid">
+          <!-- QR Code and Pairing Section -->
+          <div class="card connection-card">
+            <div class="card-title">Instance Connect Gateway</div>
+            
+            <div class="instance-selector-group form-group">
+              <label class="form-label" for="session-bot-select">Select Target Bot Container</label>
+              <select class="form-control" id="session-bot-select">
+                <!-- Loaded dynamically by JS -->
+              </select>
+            </div>
+
+            <div class="tabs-header">
+              <button class="tab-btn active" id="qr-tab-btn" onclick="switchAuthTab('qr')">
+                <i class="fa-solid fa-qrcode"></i> Scan QR Code
+              </button>
+              <button class="tab-btn" id="code-tab-btn" onclick="switchAuthTab('code')">
+                <i class="fa-solid fa-key"></i> Pairing Code
+              </button>
+            </div>
+
+            <div class="tab-content" id="qr-tab-content">
+              <div class="qr-container-wrapper">
+                <div class="qr-box" id="qr-box-graphic">
+                  <div class="qr-overlay" id="qr-overlay-status" style="display: none;">
+                    <i class="fa-solid fa-arrows-rotate text-primary qr-spinner"></i>
+                    <p>Generating new secure handshake...</p>
+                  </div>
+                  <!-- A gorgeous mock QR code representation -->
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=GURU-XD-MOCK-SESSION-HASH-2026-07-17" alt="WhatsApp Web QR Code" class="qr-img" id="qr-image">
+                </div>
+                <div class="qr-telemetry">
+                  <span class="refresh-countdown" id="qr-timer">Refresh in <strong>45s</strong></span>
+                  <button class="btn btn-outline btn-sm" onclick="regenerateQR()">
+                    <i class="fa-solid fa-arrows-rotate"></i> Regenerate QR
+                  </button>
+                </div>
+              </div>
+              <div class="pairing-instructions">
+                <h3>Pairing Instructions</h3>
+                <ol>
+                  <li>Open WhatsApp on your mobile phone.</li>
+                  <li>Tap <strong>Menu</strong> (Android) or <strong>Settings</strong> (iOS) &gt; <strong>Linked Devices</strong>.</li>
+                  <li>Select <strong>Link a Device</strong> and point your camera at this QR screen.</li>
+                </ol>
+              </div>
+            </div>
+
+            <div class="tab-content" id="code-tab-content" style="display: none;">
+              <div class="pairing-code-generator">
+                <p class="pairing-instructions-text">Enter your phone number (including country code) to request an alphanumeric WhatsApp Pairing Code.</p>
+                <div class="form-group">
+                  <label class="form-label" for="pairing-phone">Phone Number (International format)</label>
+                  <div class="form-row">
+                    <input class="form-control" type="text" id="pairing-phone" placeholder="e.g. 12015550184" style="flex: 2;">
+                    <button class="btn btn-primary btn-sm" onclick="requestPairingCode()" style="flex: 1;">Get Code</button>
+                  </div>
+                </div>
+
+                <div class="pairing-code-display-box" id="code-display-box" style="display: none;">
+                  <span class="pairing-code-label">YOUR PAIRING CODE</span>
+                  <div class="code-container">
+                    <span class="code-value" id="generated-code-val">A4B8-CD90</span>
+                    <button class="btn btn-secondary btn-sm" onclick="copyPairingCode()" title="Copy to clipboard">
+                      <i class="fa-regular fa-copy"></i> Copy
+                    </button>
+                  </div>
+                  <p class="code-expiry">Expires in 2 minutes. Enter this code on your mobile notification prompt.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Connection Status & Devices Section -->
+          <div class="card status-devices-card">
+            <div class="card-title">Instance State & Connected Node</div>
+            
+            <div class="connection-status-panel">
+              <div class="status-indicator-block">
+                <span class="pulse-indicator" id="status-indicator-dot"></span>
+                <span class="status-indicator-text" id="status-indicator-text">CONNECTED</span>
+              </div>
+              <div class="status-meta" id="status-meta-details">
+                <div class="meta-row"><span>Target Device:</span> <strong id="meta-target-bot">GURU-BOT-01</strong></div>
+                <div class="meta-row"><span>Uptime:</span> <strong id="meta-uptime">12d 4h 32m</strong></div>
+                <div class="meta-row"><span>Latency:</span> <strong id="meta-latency">42ms</strong></div>
+              </div>
+            </div>
+
+            <div class="card-divider"></div>
+
+            <div class="connected-devices-section">
+              <span class="section-label">Session Connections (Linked Nodes)</span>
+              <ul class="device-list" id="active-device-list">
+                <!-- Loaded dynamically by JS -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/sessions.js"></script>
+</body>
+</html>

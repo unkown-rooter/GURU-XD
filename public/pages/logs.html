@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GURU-XD - Live Console Logs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/assets/css/global.css">
+  <link rel="stylesheet" href="/assets/css/logs.css">
+</head>
+<body>
+  <div class="loader-wrapper" id="app-loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Opening Socket Terminal...</div>
+  </div>
+
+  <div class="app-container">
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+      <div id="navbar-container"></div>
+
+      <main class="page-body">
+        <div class="page-header flex-between">
+          <div>
+            <h1 class="page-heading">Core System Terminal</h1>
+            <p class="page-subheading font-sans">Review live event emissions, message handshakes, and diagnostic warnings directly from GURU daemons.</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-secondary btn-sm" onclick="clearConsoleLogs()">
+              <i class="fa-solid fa-eraser"></i> Clear Terminal
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="downloadLogsText()">
+              <i class="fa-solid fa-cloud-arrow-down"></i> Export Logs (.txt)
+            </button>
+          </div>
+        </div>
+
+        <!-- Terminal Filter Header Box -->
+        <div class="card terminal-header-card">
+          <div class="terminal-controls-wrapper">
+            <div class="search-input-group" style="flex: 1.5;">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" placeholder="Search live console logs by keywords..." id="log-search" oninput="filterLogs()">
+            </div>
+            
+            <div class="selectors-group">
+              <button class="category-chip active" onclick="setLogTypeFilter('all')" id="lchip-all">All Streams</button>
+              <button class="category-chip" onclick="setLogTypeFilter('info')" id="lchip-info">
+                <span class="indicator-dot bg-primary" style="display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Info
+              </button>
+              <button class="category-chip" onclick="setLogTypeFilter('warning')" id="lchip-warning">
+                <span class="indicator-dot bg-warning" style="display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Warnings
+              </button>
+              <button class="category-chip" onclick="setLogTypeFilter('danger')" id="lchip-danger">
+                <span class="indicator-dot bg-danger" style="display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px;"></span>Errors
+              </button>
+            </div>
+
+            <div class="toggle-control-item">
+              <label class="checkbox-container">
+                <input type="checkbox" id="autoscroll-toggle" checked>
+                <span class="checkmark"></span>
+                <span class="checkbox-label" style="font-size:12px; font-weight:600;">Autoscroll terminal</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnostic console terminal box -->
+        <div class="card terminal-canvas-card">
+          <div class="terminal-body" id="logs-terminal-screen">
+            <!-- Loaded dynamically by JS -->
+          </div>
+          <div class="terminal-footer-line">
+            <span class="terminal-node-id"><i class="fa-solid fa-microchip"></i> Node: guru_node_cluster_01</span>
+            <span class="terminal-status"><span class="pulse-indicator" style="width:6px; height:6px; display:inline-block; margin-right:6px;"></span>Live socket stream active</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/assets/js/sidebar.js"></script>
+  <script src="/assets/js/navbar.js"></script>
+  <script src="/assets/js/components.js"></script>
+  <script src="/assets/js/logs.js"></script>
+</body>
+</html>

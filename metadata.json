@@ -1,0 +1,6 @@
+{
+  "name": "GURU-XD Bot Hosting Platform",
+  "description": "Premium dark dashboard frontend for GURU-XD Whatsapp and Multi-Platform Bot Hosting platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

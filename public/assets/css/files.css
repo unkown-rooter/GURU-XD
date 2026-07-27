@@ -1,0 +1,190 @@
+/**
+ * GURU-XD Bot Hosting Platform
+ * Files Explorer Page Specific Styles
+ */
+
+.files-layout-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1100px) {
+  .files-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Category card controls */
+.files-filter-card {
+  margin-bottom: 24px;
+}
+
+.filter-flex-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.file-category-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* File explorer grid */
+.files-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.file-item-card {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 200px;
+}
+
+.file-preview-thumbnail {
+  height: 110px;
+  width: 100%;
+  background-color: rgba(18, 24, 38, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.file-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-display-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.file-item-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-color);
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+.file-item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Storage details sidebar */
+.storage-details-card {
+  margin-bottom: 24px;
+}
+
+.radial-storage-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 24px;
+}
+
+.storage-percentage-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(var(--primary-color) 0% 12.4%, var(--border-color) 12.4% 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.storage-percentage-ring::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  background-color: var(--card-color);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.percentage-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-color);
+  position: relative;
+  z-index: 2;
+}
+
+.percentage-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  position: relative;
+  z-index: 2;
+  font-weight: 500;
+}
+
+.storage-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.item-head span {
+  color: var(--text-secondary);
+}
+
+.item-head i {
+  margin-right: 6px;
+}
+
+/* Sidebar upload dropzone override */
+.upload-dropzone-card .drag-drop-area {
+  padding: 30px 16px;
+}
