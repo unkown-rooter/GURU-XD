@@ -146,7 +146,7 @@ export interface SecurityAlert {
 export interface LogLine {
   id: string;
   timestamp: string;
-  type: 'info' | 'command' | 'error' | 'success';
+  type: 'info' | 'command' | 'error' | 'success' | 'warning';
   message: string;
   source: string;
 }
@@ -179,3 +179,93 @@ export interface MongoConfig {
   uri: string;
   isConnected: boolean;
 }
+
+export interface CopilotMemoryItem {
+  id: string;
+  category: 'knowledge' | 'project' | 'conversation' | 'ai_learning' | 'user' | 'platform';
+  key: string;
+  value: string;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CopilotWorkItem {
+  id: string;
+  timestamp: string;
+  project: string;
+  module: string;
+  filesChanged: string[];
+  summary: string;
+  status: 'completed' | 'in_progress' | 'planned';
+  details?: string;
+}
+
+export interface CopilotSuggestion {
+  id: string;
+  module: string;
+  title: string;
+  description: string;
+  reasoning: string;
+  actionType: 'connect_api' | 'security_fix' | 'optimize' | 'create_command' | 'inspect_logs';
+  recommendedAgent: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
+export interface CopilotSandboxDraft {
+  id: string;
+  title: string;
+  trigger: string;
+  code: string;
+  description: string;
+  category: string;
+  updatedAt: string;
+}
+
+export interface CopilotPromptTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  promptText: string;
+  targetAgent?: string;
+  isBuiltIn?: boolean;
+}
+
+export interface CopilotSandboxDeployment {
+  id: string;
+  trigger: string;
+  code: string;
+  description: string;
+  category: string;
+  version: number;
+  securityScore: number;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  deployedBy: string;
+  deployedAt: string;
+}
+
+export interface CopilotAgentProfile {
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+  avatarColor: string;
+  domain: string;
+  systemInstruction: string;
+}
+
+export interface CopilotAnalyticsStats {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  avgLatencyMs: number;
+  memoryHitsCount: number;
+  memorySavesCount: number;
+  toolExecutionsCount: number;
+  providerUsage: Record<string, number>;
+  activeProvider: string;
+  memoryUsageCount: number;
+  status: string;
+}
+

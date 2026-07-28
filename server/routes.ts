@@ -15,7 +15,8 @@ import {
   DeploymentPipelineController,
   BehaviorEngineController,
   SecurityAnalystController,
-  IntelligenceCenterController
+  IntelligenceCenterController,
+  AnalyticsController
 } from "./controllers";
 
 const router = Router();
@@ -122,6 +123,11 @@ router.post("/api/intelligence/register-module", apiGuard, IntelligenceCenterCon
 router.get("/api/intelligence/telemetry", apiGuard, IntelligenceCenterController.getTelemetry);
 router.get("/api/intelligence/events", IntelligenceCenterController.streamEvents);
 
+// Production Analytics routes
+router.get("/api/analytics/summary", apiGuard, AnalyticsController.getSummary);
+router.get("/api/analytics/charts", apiGuard, AnalyticsController.getCharts);
+router.get("/api/analytics/heatmap/:botId", apiGuard, AnalyticsController.getHeatmap);
+
 // Bot Management routes
 router.put("/api/bots/:id", apiGuard, BotController.updateBot);
 router.delete("/api/bots/:id", apiGuard, BotController.deleteBot);
@@ -189,8 +195,38 @@ router.delete("/api/users/:id", apiGuard, UserController.deleteUser);
 router.post("/api/logs", apiGuard, LogController.createLog);
 router.delete("/api/logs", apiGuard, LogController.clearLogs);
 
-// AI Terminal Copilot chat route (protected with anti-flood rate limiter!)
-router.post("/api/copilot/chat", rateLimiter(15, 60000), CopilotController.copilotChat);
+// AI Terminal Copilot routes
+router.post("/api/copilot/chat", rateLimiter(30, 60000), CopilotController.chat);
+router.get("/api/copilot/memory", apiGuard, CopilotController.getMemories);
+router.post("/api/copilot/memory", apiGuard, CopilotController.saveMemory);
+router.delete("/api/copilot/memory/:id", apiGuard, CopilotController.deleteMemory);
+
+router.get("/api/copilot/work-timeline", apiGuard, CopilotController.getWorkTimeline);
+router.post("/api/copilot/work-timeline", apiGuard, CopilotController.addWorkItem);
+router.get("/api/copilot/work/resume", apiGuard, CopilotController.resumeWorkContext);
+router.get("/api/copilot/suggestions", apiGuard, CopilotController.getSuggestions);
+
+router.get("/api/copilot/drafts", apiGuard, CopilotController.getDrafts);
+router.post("/api/copilot/drafts", apiGuard, CopilotController.saveDraft);
+
+router.get("/api/copilot/prompts", apiGuard, CopilotController.getPrompts);
+router.post("/api/copilot/prompts", apiGuard, CopilotController.savePrompt);
+router.delete("/api/copilot/prompts/:id", apiGuard, CopilotController.deletePrompt);
+
+router.post("/api/copilot/sandbox/validate", apiGuard, CopilotController.validateSandbox);
+router.post("/api/copilot/sandbox/deploy", apiGuard, CopilotController.deploySandbox);
+router.get("/api/copilot/sandbox/history", apiGuard, CopilotController.getSandboxHistory);
+router.post("/api/copilot/sandbox/rollback/:deploymentId", apiGuard, CopilotController.rollbackSandbox);
+
+router.post("/api/copilot/execute-tool", apiGuard, CopilotController.executeTool);
+router.get("/api/copilot/analytics", apiGuard, CopilotController.getAnalytics);
+router.get("/api/copilot/agents", apiGuard, CopilotController.getAgents);
+
+// AI Engine Reliability & Provider Health routes
+router.get("/api/ai/providers", apiGuard, CopilotController.getProviders);
+router.get("/api/ai/queue", apiGuard, CopilotController.getQueue);
+router.post("/api/ai/cancel", apiGuard, CopilotController.cancelRequest);
+router.get("/api/ai/cache", apiGuard, CopilotController.getCacheStats);
 
 // Hypervisor active status simple ping endpoint
 router.get("/api/status", (req, res) => {

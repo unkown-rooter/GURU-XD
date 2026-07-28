@@ -13,6 +13,16 @@ export interface Bot {
   commandsCount: number;
   prefix: string;
   qrCode: string;
+  messagesToday?: number;
+  ping?: number;
+  errorsCount?: number;
+  storageUsage?: string;
+  storagePercent?: number;
+  networkDown?: string;
+  networkUp?: string;
+  connectedUsers?: number;
+  groupsCount?: number;
+  privateChatsCount?: number;
 }
 
 export interface Command {
@@ -109,6 +119,13 @@ export interface DatabaseState {
   mongoSchemas: MongoSchema[];
   retentionPolicy?: RetentionPolicy;
   maintenanceMode?: boolean;
+  copilotMemory?: any[];
+  copilotPrompts?: any[];
+  copilotAuditLogs?: any[];
+  copilotAnalytics?: any;
+  copilotSandboxHistory?: any[];
+  copilotWorkTimeline?: any[];
+  copilotDrafts?: any[];
 }
 
 const DB_PATH = path.join(process.cwd(), "database.json");
