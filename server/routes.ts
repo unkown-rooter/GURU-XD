@@ -16,7 +16,10 @@ import {
   BehaviorEngineController,
   SecurityAnalystController,
   IntelligenceCenterController,
-  AnalyticsController
+  AnalyticsController,
+  AppIntelligenceController,
+  EnterpriseDeploymentController,
+  DeploymentValidatorController
 } from "./controllers";
 
 const router = Router();
@@ -101,6 +104,80 @@ router.post("/api/mongo/test-connection", apiGuard, MongoConfigController.testCo
 router.post("/api/deployment/pipeline", apiGuard, DeploymentPipelineController.executePipeline);
 router.get("/api/deployment/events", DeploymentPipelineController.streamEvents);
 router.post("/api/deployment/session/new", apiGuard, DeploymentPipelineController.createSession);
+
+// Deployment Foundation (v1.0) Routes
+router.get("/api/deployments", apiGuard, DeploymentPipelineController.getDeployments);
+router.get("/api/deployments/resources", apiGuard, DeploymentPipelineController.getDeployableResources);
+router.get("/api/deployments/targets", apiGuard, DeploymentPipelineController.getDeploymentTargets);
+router.post("/api/deployments/trigger", apiGuard, DeploymentPipelineController.triggerDeployment);
+router.get("/api/deployments/:id", apiGuard, DeploymentPipelineController.getDeploymentDetails);
+router.post("/api/deployments/:id/rollback", apiGuard, DeploymentPipelineController.rollbackDeployment);
+
+// Deployment Production Configuration (v2.0) Routes
+router.get("/api/deployments/config/env", apiGuard, DeploymentPipelineController.getEnvVariables);
+router.post("/api/deployments/config/env", apiGuard, DeploymentPipelineController.upsertEnvVariable);
+router.delete("/api/deployments/config/env/:id", apiGuard, DeploymentPipelineController.deleteEnvVariable);
+router.get("/api/deployments/config/templates", apiGuard, DeploymentPipelineController.getEnvironmentTemplates);
+
+router.get("/api/deployments/ssl/certificates", apiGuard, DeploymentPipelineController.getSslCertificates);
+router.post("/api/deployments/ssl/:id/renew", apiGuard, DeploymentPipelineController.renewSslCertificate);
+
+router.get("/api/deployments/domains", apiGuard, DeploymentPipelineController.getCustomDomains);
+router.post("/api/deployments/domains", apiGuard, DeploymentPipelineController.registerCustomDomain);
+router.post("/api/deployments/domains/:id/verify", apiGuard, DeploymentPipelineController.verifyCustomDomain);
+
+// Operations Center (v3.0) Routes: Monitoring, Centralized Logs, Health Checks & Performance
+router.get("/api/deployments/operations/stats", apiGuard, DeploymentPipelineController.getOperationsMonitoringStats);
+router.get("/api/deployments/operations/logs", apiGuard, DeploymentPipelineController.getCentralizedLogs);
+router.post("/api/deployments/operations/logs", apiGuard, DeploymentPipelineController.recordLogEntry);
+router.get("/api/deployments/operations/logs/export", apiGuard, DeploymentPipelineController.exportLogs);
+router.get("/api/deployments/operations/health", apiGuard, DeploymentPipelineController.getHealthCheckSummary);
+router.post("/api/deployments/operations/health/probe", apiGuard, DeploymentPipelineController.triggerHealthCheck);
+router.get("/api/deployments/operations/performance", apiGuard, DeploymentPipelineController.getPerformanceOptimizationMetrics);
+
+// Reliability Engine (v4.0) Routes: Automated Backups, Recovery & Rollback, Zero-Downtime Deployment Strategies
+router.get("/api/deployments/reliability/storage-providers", apiGuard, DeploymentPipelineController.getStorageProvidersAndPolicies);
+router.get("/api/deployments/reliability/backups", apiGuard, DeploymentPipelineController.getBackups);
+router.post("/api/deployments/reliability/backups", apiGuard, DeploymentPipelineController.triggerBackup);
+router.post("/api/deployments/reliability/backups/:id/validate", apiGuard, DeploymentPipelineController.validateBackupIntegrity);
+router.get("/api/deployments/reliability/recovery/history", apiGuard, DeploymentPipelineController.getRecoveryHistory);
+router.post("/api/deployments/reliability/recovery/trigger", apiGuard, DeploymentPipelineController.triggerRecovery);
+router.get("/api/deployments/reliability/strategy/config", apiGuard, DeploymentPipelineController.getStrategyConfig);
+router.post("/api/deployments/reliability/strategy/config", apiGuard, DeploymentPipelineController.updateStrategyConfig);
+router.get("/api/deployments/reliability/strategy/transitions", apiGuard, DeploymentPipelineController.getTransitionHistory);
+router.post("/api/deployments/reliability/strategy/transitions", apiGuard, DeploymentPipelineController.executeStrategyTransition);
+
+// Enterprise Deployment Platform (v5.0) Routes
+// CI/CD Pipelines
+router.get("/api/deployments/enterprise/pipelines", apiGuard, EnterpriseDeploymentController.getPipelines);
+router.post("/api/deployments/enterprise/pipelines", apiGuard, EnterpriseDeploymentController.createPipeline);
+router.post("/api/deployments/enterprise/pipelines/:pipelineId/execute", apiGuard, EnterpriseDeploymentController.executePipeline);
+router.get("/api/deployments/enterprise/pipelines/runs", apiGuard, EnterpriseDeploymentController.getPipelineRuns);
+
+// Production Security Hardening
+router.post("/api/deployments/enterprise/security/audit", apiGuard, EnterpriseDeploymentController.runSecurityAudit);
+router.get("/api/deployments/enterprise/security/audit", apiGuard, EnterpriseDeploymentController.getSecurityAudit);
+
+// Notifications
+router.get("/api/deployments/enterprise/notifications/channels", apiGuard, EnterpriseDeploymentController.getNotificationChannels);
+router.post("/api/deployments/enterprise/notifications/channels", apiGuard, EnterpriseDeploymentController.configureNotificationChannel);
+router.post("/api/deployments/enterprise/notifications/dispatch", apiGuard, EnterpriseDeploymentController.dispatchNotification);
+router.get("/api/deployments/enterprise/notifications/logs", apiGuard, EnterpriseDeploymentController.getNotificationLogs);
+
+// Version & Release Management
+router.get("/api/deployments/enterprise/releases", apiGuard, EnterpriseDeploymentController.getReleases);
+router.post("/api/deployments/enterprise/releases", apiGuard, EnterpriseDeploymentController.createRelease);
+router.post("/api/deployments/enterprise/releases/:releaseId/approve", apiGuard, EnterpriseDeploymentController.approveRelease);
+
+// Multi-Environment Support
+router.get("/api/deployments/enterprise/environments", apiGuard, EnterpriseDeploymentController.getEnvironmentStates);
+router.post("/api/deployments/enterprise/environments/promote", apiGuard, EnterpriseDeploymentController.promoteReleaseToEnvironment);
+router.get("/api/deployments/enterprise/environments/promotions", apiGuard, EnterpriseDeploymentController.getPromotionsHistory);
+
+// Deployment Validator System
+router.post("/api/deployments/validator/run", apiGuard, DeploymentValidatorController.runValidation);
+router.get("/api/deployments/validator/history", apiGuard, DeploymentValidatorController.getValidationHistory);
+router.get("/api/deployments/validator/reports/:id", apiGuard, DeploymentValidatorController.getValidationReport);
 
 // Behavior Learning Engine routes
 router.get("/api/behavior/profiles", apiGuard, BehaviorEngineController.getProfiles);
@@ -227,6 +304,39 @@ router.get("/api/ai/providers", apiGuard, CopilotController.getProviders);
 router.get("/api/ai/queue", apiGuard, CopilotController.getQueue);
 router.post("/api/ai/cancel", apiGuard, CopilotController.cancelRequest);
 router.get("/api/ai/cache", apiGuard, CopilotController.getCacheStats);
+
+// Unified Applications Operations & Intelligence Endpoints
+router.get("/api/applications/intelligence/overview", apiGuard, AppIntelligenceController.getOverview);
+router.get("/api/applications/observations", apiGuard, AppIntelligenceController.getObservations);
+router.post("/api/applications/observations", apiGuard, AppIntelligenceController.recordObservation);
+router.get("/api/applications/:id/memory", apiGuard, AppIntelligenceController.getMemory);
+router.get("/api/applications/:id/understanding", apiGuard, AppIntelligenceController.getUnderstanding);
+router.get("/api/applications/:id/compare", apiGuard, AppIntelligenceController.getComparison);
+router.get("/api/applications/:id/analysis", apiGuard, AppIntelligenceController.getAnalysis);
+
+// Predictive & Adaptive Intelligence Endpoints
+router.get("/api/applications/:id/predictions", apiGuard, AppIntelligenceController.getPredictions);
+router.get("/api/applications/:id/learning", apiGuard, AppIntelligenceController.getLearning);
+router.get("/api/applications/:id/adaptations", apiGuard, AppIntelligenceController.getAdaptations);
+router.post("/api/applications/:id/adaptations/:adaptationId/approve", apiGuard, AppIntelligenceController.approveAdaptation);
+router.post("/api/applications/:id/adaptations/:adaptationId/dismiss", apiGuard, AppIntelligenceController.dismissAdaptation);
+router.get("/api/applications/:id/recommendations", apiGuard, AppIntelligenceController.getRecommendations);
+router.get("/api/applications/:id/plans", apiGuard, AppIntelligenceController.getPlans);
+
+// Autonomous Operations & Security Endpoints
+router.get("/api/applications/:id/automations", apiGuard, AppIntelligenceController.getAutomations);
+router.post("/api/applications/:id/automations/:ruleId/toggle", apiGuard, AppIntelligenceController.toggleAutomation);
+router.post("/api/applications/:id/automations/:ruleId/executions/:executionId/approve", apiGuard, AppIntelligenceController.approveAutomationAction);
+router.post("/api/applications/:id/automations/:ruleId/executions/:executionId/reject", apiGuard, AppIntelligenceController.rejectAutomationAction);
+router.get("/api/applications/:id/security", apiGuard, AppIntelligenceController.getSecurityCenter);
+router.get("/api/applications/:id/collaboration", apiGuard, AppIntelligenceController.getCollaborationTopology);
+router.get("/api/applications/reflection", apiGuard, AppIntelligenceController.getEcosystemReflection);
+router.get("/api/applications/improvement", apiGuard, AppIntelligenceController.getContinuousImprovementMetrics);
+router.get("/api/applications/ai-insights", apiGuard, AppIntelligenceController.getAIInsightsSummary);
+
+router.post("/api/applications/register", apiGuard, AppIntelligenceController.registerApp);
+router.post("/api/applications/:id/record-restart", apiGuard, AppIntelligenceController.recordRestart);
+router.post("/api/applications/:id/record-status", apiGuard, AppIntelligenceController.recordStatusChange);
 
 // Hypervisor active status simple ping endpoint
 router.get("/api/status", (req, res) => {

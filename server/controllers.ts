@@ -1846,6 +1846,643 @@ export class DeploymentPipelineController {
     };
     res.json({ success: true, session: newSession });
   }
+
+  public static async getDeployments(req: Request, res: Response) {
+    try {
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const deployments = service.getDeployments(resourceId);
+      res.json({ success: true, deployments });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch deployments' });
+    }
+  }
+
+  public static async getDeployableResources(req: Request, res: Response) {
+    try {
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const typeFilter = req.query.type as string;
+      const resources = service.getDeployableResources(typeFilter);
+      res.json({ success: true, resources });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch deployable resources' });
+    }
+  }
+
+  public static async getDeploymentTargets(req: Request, res: Response) {
+    try {
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const targets = service.getDeploymentTargets();
+      res.json({ success: true, targets });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch deployment targets' });
+    }
+  }
+
+  public static async triggerDeployment(req: Request, res: Response) {
+    try {
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const record = service.triggerDeployment(req.body);
+      res.json({ success: true, deployment: record });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to trigger deployment' });
+    }
+  }
+
+  public static async getDeploymentDetails(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const deployment = service.getDeploymentById(id);
+      if (!deployment) {
+        return res.status(404).json({ success: false, error: 'Deployment record not found' });
+      }
+      res.json({ success: true, deployment });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch deployment details' });
+    }
+  }
+
+  public static async rollbackDeployment(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { DeploymentService } = await import("./services/deploymentService");
+      const service = DeploymentService.getInstance();
+      const result = service.rollbackDeployment(id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to rollback deployment' });
+    }
+  }
+
+  // Version 2.0: Environment & Secrets Management
+  public static async getEnvVariables(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const envProfile = req.query.env as any;
+      const resourceId = req.query.resourceId as string;
+      const reveal = req.query.reveal === 'true';
+      const variables = service.getEnvVariables(envProfile, resourceId, reveal);
+      res.json({ success: true, variables });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch environment variables' });
+    }
+  }
+
+  public static async upsertEnvVariable(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const variable = service.upsertEnvVariable(req.body);
+      res.json({ success: true, variable });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to update environment variable' });
+    }
+  }
+
+  public static async deleteEnvVariable(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const deleted = service.deleteEnvVariable(id);
+      res.json({ success: deleted });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to delete environment variable' });
+    }
+  }
+
+  public static async getEnvironmentTemplates(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const templates = service.getEnvironmentTemplates();
+      res.json({ success: true, templates });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch environment templates' });
+    }
+  }
+
+  // Version 2.0: HTTPS & SSL Management
+  public static async getSslCertificates(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const certificates = service.getSslCertificates();
+      res.json({ success: true, certificates });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch SSL certificates' });
+    }
+  }
+
+  public static async renewSslCertificate(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const result = service.renewSslCertificate(id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to renew SSL certificate' });
+    }
+  }
+
+  // Version 2.0: Domain Management
+  public static async getCustomDomains(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const domains = service.getCustomDomains();
+      res.json({ success: true, domains });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch custom domains' });
+    }
+  }
+
+  public static async registerCustomDomain(req: Request, res: Response) {
+    try {
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const domain = service.registerCustomDomain(req.body);
+      res.json({ success: true, domain });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to register custom domain' });
+    }
+  }
+
+  public static async verifyCustomDomain(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { ProductionConfigService } = await import("./services/productionConfigService");
+      const service = ProductionConfigService.getInstance();
+      const result = service.verifyCustomDomain(id);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to verify custom domain' });
+    }
+  }
+
+  // Version 3.0: Operations Center (Monitoring, Centralized Logs, Health Checks, Performance Engine)
+  public static async getOperationsMonitoringStats(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const stats = service.getMonitoringStats();
+      res.json({ success: true, stats });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch monitoring statistics' });
+    }
+  }
+
+  public static async getCentralizedLogs(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const deploymentId = req.query.deploymentId as string;
+      const level = req.query.level as any;
+      const category = req.query.category as any;
+      const query = req.query.query as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      const result = service.getCentralizedLogs({ resourceId, deploymentId, level, category, query, limit, offset });
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch centralized logs' });
+    }
+  }
+
+  public static async recordLogEntry(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const entry = service.recordLogEntry(req.body);
+      res.json({ success: true, entry });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to record log entry' });
+    }
+  }
+
+  public static async exportLogs(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const format = (req.query.format as 'json' | 'csv') || 'json';
+      const output = service.exportLogsFormat(resourceId, format);
+
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="deployment-logs.csv"');
+        return res.send(output);
+      }
+      res.json({ success: true, data: JSON.parse(output) });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to export logs' });
+    }
+  }
+
+  public static async getHealthCheckSummary(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const probes = service.getHealthCheckProbes();
+      const summary = service.getHealthSummary();
+      res.json({ success: true, probes, summary });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch health check summary' });
+    }
+  }
+
+  public static async triggerHealthCheck(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const resourceId = req.body?.resourceId;
+      const probes = service.triggerManualHealthCheck(resourceId);
+      res.json({ success: true, probes });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to trigger health check' });
+    }
+  }
+
+  public static async getPerformanceOptimizationMetrics(req: Request, res: Response) {
+    try {
+      const { DeploymentOperationsService } = await import("./services/deploymentOperationsService");
+      const service = DeploymentOperationsService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const metrics = service.getLatestMetrics(resourceId);
+      const bottlenecks = service.getBottlenecksAndRecommendations();
+      res.json({ success: true, metrics, bottlenecks });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch performance metrics' });
+    }
+  }
+
+  // Version 4.0: Reliability Engine (Automated Backups, Recovery & Rollback, Zero-Downtime Deployment Strategies)
+  public static async getStorageProvidersAndPolicies(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const providers = service.getStorageProviders();
+      const policies = service.getRetentionPolicies();
+      res.json({ success: true, providers, policies });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch storage providers and policies' });
+    }
+  }
+
+  public static async getBackups(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const backups = service.getBackups(resourceId);
+      res.json({ success: true, backups });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch backup history' });
+    }
+  }
+
+  public static async triggerBackup(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const record = service.triggerBackup(req.body);
+      res.json({ success: true, backup: record });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to trigger backup creation' });
+    }
+  }
+
+  public static async validateBackupIntegrity(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const result = service.validateBackupIntegrity(id);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to validate backup integrity' });
+    }
+  }
+
+  public static async getRecoveryHistory(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const history = service.getRecoveryHistory(resourceId);
+      res.json({ success: true, history });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch recovery history' });
+    }
+  }
+
+  public static async triggerRecovery(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const record = service.triggerRecovery(req.body);
+      res.json({ success: true, recovery: record });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to trigger recovery process' });
+    }
+  }
+
+  public static async getStrategyConfig(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const resourceId = (req.query.resourceId as string) || 'res-app-1';
+      const config = service.getStrategyConfig(resourceId);
+      res.json({ success: true, config });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch strategy config' });
+    }
+  }
+
+  public static async updateStrategyConfig(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const config = service.updateStrategyConfig(req.body);
+      res.json({ success: true, config });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to update strategy config' });
+    }
+  }
+
+  public static async getTransitionHistory(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const history = service.getTransitionHistory(resourceId);
+      res.json({ success: true, history });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch transition history' });
+    }
+  }
+
+  public static async executeStrategyTransition(req: Request, res: Response) {
+    try {
+      const { DeploymentReliabilityService } = await import("./services/deploymentReliabilityService");
+      const service = DeploymentReliabilityService.getInstance();
+      const record = service.executeStrategyTransition(req.body);
+      res.json({ success: true, transition: record });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to execute strategy transition' });
+    }
+  }
+}
+
+export class EnterpriseDeploymentController {
+  // 1. CI/CD Pipelines
+  public static async getPipelines(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const resourceId = req.query.resourceId as string;
+      const pipelines = service.getPipelines(resourceId);
+      res.json({ success: true, pipelines });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch pipelines' });
+    }
+  }
+
+  public static async createPipeline(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const pipeline = service.createPipeline(req.body);
+      res.json({ success: true, pipeline });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to create pipeline' });
+    }
+  }
+
+  public static async executePipeline(req: Request, res: Response) {
+    try {
+      const { pipelineId } = req.params;
+      const { triggerSource } = req.body;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const run = service.executePipeline(pipelineId, triggerSource);
+      res.json({ success: true, run });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to execute pipeline' });
+    }
+  }
+
+  public static async getPipelineRuns(req: Request, res: Response) {
+    try {
+      const { pipelineId } = req.query;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const runs = service.getPipelineRuns(pipelineId as string | undefined);
+      res.json({ success: true, runs });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch pipeline runs' });
+    }
+  }
+
+  // 2. Production Security Hardening
+  public static async runSecurityAudit(req: Request, res: Response) {
+    try {
+      const { resourceId, environment } = req.body;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const report = service.runSecurityAudit(resourceId || 'res-app-1', environment || 'production');
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to run security audit' });
+    }
+  }
+
+  public static async getSecurityAudit(req: Request, res: Response) {
+    try {
+      const resourceId = (req.query.resourceId as string) || 'res-app-1';
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const report = service.getSecurityAudit(resourceId);
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch security audit' });
+    }
+  }
+
+  // 3. Notifications
+  public static async getNotificationChannels(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const channels = service.getNotificationChannels();
+      res.json({ success: true, channels });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch notification channels' });
+    }
+  }
+
+  public static async configureNotificationChannel(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const channel = service.configureNotificationChannel(req.body);
+      res.json({ success: true, channel });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to configure channel' });
+    }
+  }
+
+  public static async dispatchNotification(req: Request, res: Response) {
+    try {
+      const { eventType, messagePayload, channelId } = req.body;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const log = service.dispatchNotification(eventType, messagePayload, channelId);
+      res.json({ success: true, log });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to dispatch notification' });
+    }
+  }
+
+  public static async getNotificationLogs(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const logs = service.getNotificationLogs();
+      res.json({ success: true, logs });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch notification logs' });
+    }
+  }
+
+  // 4. Version & Release Management
+  public static async getReleases(req: Request, res: Response) {
+    try {
+      const resourceId = req.query.resourceId as string;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const releases = service.getReleases(resourceId);
+      res.json({ success: true, releases });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch releases' });
+    }
+  }
+
+  public static async createRelease(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const release = service.createRelease(req.body);
+      res.json({ success: true, release });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to create release' });
+    }
+  }
+
+  public static async approveRelease(req: Request, res: Response) {
+    try {
+      const { releaseId } = req.params;
+      const { approvedBy, comment } = req.body;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const release = service.approveRelease(releaseId, approvedBy || 'lead-devops-admin', comment);
+      res.json({ success: true, release });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to approve release' });
+    }
+  }
+
+  // 5. Multi-Environment Support
+  public static async getEnvironmentStates(req: Request, res: Response) {
+    try {
+      const resourceId = req.query.resourceId as string;
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const environments = service.getEnvironmentStates(resourceId);
+      res.json({ success: true, environments });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch environment states' });
+    }
+  }
+
+  public static async promoteReleaseToEnvironment(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const promotion = service.promoteReleaseToEnvironment(req.body);
+      res.json({ success: true, promotion });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to promote release' });
+    }
+  }
+
+  public static async getPromotionsHistory(req: Request, res: Response) {
+    try {
+      const { EnterpriseDeploymentService } = await import("./services/enterpriseDeploymentService");
+      const service = EnterpriseDeploymentService.getInstance();
+      const history = service.getPromotionsHistory();
+      res.json({ success: true, history });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch promotions history' });
+    }
+  }
+}
+
+export class DeploymentValidatorController {
+  public static async runValidation(req: Request, res: Response) {
+    try {
+      const { DeploymentValidatorService } = await import("./services/deploymentValidatorService");
+      const service = DeploymentValidatorService.getInstance();
+      const report = service.runValidationPipeline({
+        resourceId: req.body?.resourceId || 'res-app-1',
+        resourceName: req.body?.resourceName || 'guru-whatsapp-master',
+        deploymentType: req.body?.deploymentType || 'docker-container',
+        environment: req.body?.environment || 'production',
+        targetBranch: req.body?.targetBranch || 'main',
+        imageTag: req.body?.imageTag || 'guru-wa:v2.5.0'
+      });
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to run deployment validation pipeline' });
+    }
+  }
+
+  public static async getValidationHistory(req: Request, res: Response) {
+    try {
+      const { DeploymentValidatorService } = await import("./services/deploymentValidatorService");
+      const service = DeploymentValidatorService.getInstance();
+      const resourceId = req.query.resourceId as string | undefined;
+      const history = service.getValidationHistory(resourceId);
+      res.json({ success: true, history });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch validation history' });
+    }
+  }
+
+  public static async getValidationReport(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { DeploymentValidatorService } = await import("./services/deploymentValidatorService");
+      const service = DeploymentValidatorService.getInstance();
+      const report = service.getValidationReport(id);
+      if (!report) {
+        return res.status(404).json({ success: false, error: 'Validation report not found' });
+      }
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch validation report' });
+    }
+  }
 }
 
 export class BehaviorEngineController {
@@ -2351,6 +2988,322 @@ export class AnalyticsController {
     }
   }
 }
+
+export class AppIntelligenceController {
+  public static async getOverview(req: Request, res: Response) {
+    try {
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const overview = service.getOverview();
+      res.json({ success: true, overview });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch Applications Intelligence overview." });
+    }
+  }
+
+  public static async getObservations(req: Request, res: Response) {
+    try {
+      const { appId } = req.query;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const observations = service.getObservations(appId as string | undefined);
+      res.json({ success: true, observations });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch observations." });
+    }
+  }
+
+  public static async recordObservation(req: Request, res: Response) {
+    try {
+      const { appId, eventType, severity, title, details, metadata } = req.body;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const obs = service.recordObservation(appId, eventType, severity || 'info', title, details, metadata);
+      res.json({ success: true, observation: obs });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to record observation." });
+    }
+  }
+
+  public static async getMemory(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const memory = service.getMemory(id);
+      res.json({ success: true, memory });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application memory." });
+    }
+  }
+
+  public static async getUnderstanding(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const understanding = service.getUnderstanding(id);
+      res.json({ success: true, understanding });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application understanding." });
+    }
+  }
+
+  public static async getComparison(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const comparison = service.getComparison(id);
+      res.json({ success: true, comparison });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application comparison." });
+    }
+  }
+
+  public static async getAnalysis(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const analysis = service.getAnalysis(id);
+      res.json({ success: true, analysis });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application analysis." });
+    }
+  }
+
+  public static async registerApp(req: Request, res: Response) {
+    try {
+      const { id, name, type, repository, region, replicaCount } = req.body;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      service.registerApp({ id, name, type, repository, region, replicaCount });
+      res.json({ success: true, message: `Application ${name} registered successfully.` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to register application." });
+    }
+  }
+
+  public static async recordRestart(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { name, user } = req.body;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      service.recordRestart(id, name || id, user || 'operator');
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to record restart." });
+    }
+  }
+
+  public static async recordStatusChange(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { name, status, user } = req.body;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      service.recordStatusChange(id, name || id, status, user || 'operator');
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to record status change." });
+    }
+  }
+
+  // Predictive & Adaptive Intelligence Controller Endpoints
+  public static async getPredictions(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const predictions = service.getPredictions(id);
+      res.json({ success: true, predictions });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application predictions." });
+    }
+  }
+
+  public static async getLearning(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const learning = service.getLearningKnowledge(id);
+      res.json({ success: true, learning });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application learning knowledge." });
+    }
+  }
+
+  public static async getAdaptations(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const adaptations = service.getAdaptations(id);
+      res.json({ success: true, adaptations });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application adaptations." });
+    }
+  }
+
+  public static async approveAdaptation(req: Request, res: Response) {
+    try {
+      const { id, adaptationId } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const approved = service.approveAdaptation(id, adaptationId);
+      res.json({ success: approved });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to approve adaptation." });
+    }
+  }
+
+  public static async dismissAdaptation(req: Request, res: Response) {
+    try {
+      const { id, adaptationId } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const dismissed = service.dismissAdaptation(id, adaptationId);
+      res.json({ success: dismissed });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to dismiss adaptation." });
+    }
+  }
+
+  public static async getRecommendations(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const recommendations = service.getRecommendations(id);
+      res.json({ success: true, recommendations });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application recommendations." });
+    }
+  }
+
+  public static async getPlans(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const plans = service.getPlans(id);
+      res.json({ success: true, plans });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application plans." });
+    }
+  }
+
+  // Autonomous Operations & Security Controller Endpoints
+  public static async getAutomations(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const automations = service.getAutomations(id);
+      res.json({ success: true, automations });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch application automations." });
+    }
+  }
+
+  public static async toggleAutomation(req: Request, res: Response) {
+    try {
+      const { id, ruleId } = req.params;
+      const { enabled } = req.body;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const updated = service.toggleAutomation(id, ruleId, !!enabled);
+      res.json({ success: updated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to toggle automation rule." });
+    }
+  }
+
+  public static async approveAutomationAction(req: Request, res: Response) {
+    try {
+      const { id, ruleId, executionId } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const approved = service.approveAutomationAction(id, ruleId, executionId);
+      res.json({ success: approved });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to approve automation action." });
+    }
+  }
+
+  public static async rejectAutomationAction(req: Request, res: Response) {
+    try {
+      const { id, ruleId, executionId } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const rejected = service.rejectAutomationAction(id, ruleId, executionId);
+      res.json({ success: rejected });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to reject automation action." });
+    }
+  }
+
+  public static async getSecurityCenter(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const security = service.getSecurityCenter(id);
+      res.json({ success: true, security });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch security center status." });
+    }
+  }
+
+  public static async getCollaborationTopology(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const topology = service.getCollaborationTopology(id);
+      res.json({ success: true, topology });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch agent collaboration topology." });
+    }
+  }
+
+  public static async getEcosystemReflection(req: Request, res: Response) {
+    try {
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const reflection = service.getEcosystemReflection();
+      res.json({ success: true, reflection });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch ecosystem reflection." });
+    }
+  }
+
+  public static async getContinuousImprovementMetrics(req: Request, res: Response) {
+    try {
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const metrics = service.getContinuousImprovementMetrics();
+      res.json({ success: true, metrics });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch continuous improvement metrics." });
+    }
+  }
+
+  public static async getAIInsightsSummary(req: Request, res: Response) {
+    try {
+      const { AppIntelligenceService } = await import("./appIntelligenceService");
+      const service = AppIntelligenceService.getInstance();
+      const insights = service.getAIInsightsSummary();
+      res.json({ success: true, insights });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || "Failed to fetch AI insights summary." });
+    }
+  }
+}
+
 
 
 
