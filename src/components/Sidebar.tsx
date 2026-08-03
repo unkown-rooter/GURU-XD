@@ -30,7 +30,9 @@ import {
   Code,
   Brain,
   ShieldCheck,
-  Cpu
+  Cpu,
+  SlidersHorizontal,
+  Layers
 } from 'lucide-react';
 import { WorkspaceItem } from './WorkspacesView';
 
@@ -114,7 +116,9 @@ export default function Sidebar({
     {
       title: 'GOVERNANCE & ANALYTICS',
       items: [
+        { id: 'architecture-versions', label: 'Architecture Specs V0-V7', icon: Layers, badge: 'SPECS' },
         { id: 'intelligence-center', label: 'Intelligence Center', icon: Cpu, badge: 'CORE' },
+        { id: 'env-config', label: 'Env Config Manager', icon: SlidersHorizontal, badge: 'SECURE' },
         { id: 'security-analyst', label: 'AI Security Analyst', icon: ShieldCheck, badge: 'NEW' },
         { id: 'behavior', label: 'Behavior Engine', icon: Brain, badge: 'AI' },
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },

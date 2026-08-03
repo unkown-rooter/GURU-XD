@@ -1,4 +1,4 @@
-import { AIProgressCallback } from "./types";
+import { AIProgressCallback, AITelemetrySpan } from "./types";
 import { HealthMonitor } from "./healthMonitor";
 
 export interface RetryOptions {
@@ -6,13 +6,32 @@ export interface RetryOptions {
   initialDelayMs?: number;
   maxTimeoutMs?: number;
   providerId?: string;
+  traceId?: string;
+  enableJitter?: boolean;
 }
 
 /**
- * Exponential Backoff Retry Manager with Timeout Enforcement and Live Progress Feedbacks.
+ * Exponential Backoff Retry Manager with Timeout Enforcement, Jitter Calculation,
+ * Error Retriability Classification, and Live Progress Feedback.
  */
 export class RetryManager {
   private static healthMonitor = HealthMonitor.getInstance();
+
+  /**
+   * Evaluates whether an error is temporary and retriable vs permanent.
+   */
+  public static isRetriableError(err: any): boolean {
+    if (!err) return true;
+    const msg = String(err.message || err).toLowerCase();
+
+    // Permanent non-retriable errors (security, bad syntax, invalid auth token)
+    if (msg.includes("unauthorized") || msg.includes("invalid_api_key") || msg.includes("prompt injection") || msg.includes("syntax error")) {
+      return false;
+    }
+
+    // Temporary retriable errors
+    return true;
+  }
 
   /**
    * Executes an async operation with exponential backoff retries and strict per-attempt timeout limits.
@@ -26,6 +45,7 @@ export class RetryManager {
     const initialDelayMs = options.initialDelayMs || 2000;
     const maxTimeoutMs = options.maxTimeoutMs || 12000; // 12 seconds timeout per attempt
     const providerId = options.providerId || "gemini-primary";
+    const enableJitter = options.enableJitter !== false;
 
     // Standard progression steps
     if (onProgress) onProgress("🧠 Reading memory...", 1, maxAttempts);
@@ -70,16 +90,25 @@ export class RetryManager {
         this.healthMonitor.recordFailure(providerId, errorMessage);
         this.healthMonitor.recordRetry(providerId);
 
+        // Check non-retriable failure
+        if (!this.isRetriableError(err)) {
+          throw err;
+        }
+
         if (attempt < maxAttempts) {
-          // Calculate exponential backoff delay (2s -> 4s -> 8s -> 15s)
+          // Calculate exponential backoff delay (2s -> 4s -> 8s -> 15s) with optional jitter
           if (attempt === 1) delay = 2000;
           else if (attempt === 2) delay = 4000;
           else if (attempt === 3) delay = 8000;
           else delay = 15000;
 
+          if (enableJitter) {
+            delay += Math.floor(Math.random() * 500);
+          }
+
           if (onProgress) {
             onProgress(
-              `⚠️ Gemini is experiencing high traffic. Retrying attempt ${attempt + 1} of ${maxAttempts} in ${delay / 1000}s...`,
+              `⚠️ Gemini is experiencing high traffic. Retrying attempt ${attempt + 1} of ${maxAttempts} in ${Math.round(delay / 100) / 10}s...`,
               attempt + 1,
               maxAttempts
             );

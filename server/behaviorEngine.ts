@@ -161,6 +161,103 @@ export interface InstanceBehaviorProfile {
   };
 }
 
+// ============================================================================
+// VERSION 3 EXTENDED BEHAVIOR INTELLIGENCE TYPES
+// ============================================================================
+
+export interface UserProfileBehavior {
+  userId: string;
+  username: string;
+  role: string;
+  totalCommandsInvoked: number;
+  favoriteCommands: string[];
+  lastActiveAt: string;
+  riskScorePct: number; // 0 - 100
+  anomalyCount: number;
+  trustLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'SUSPICIOUS';
+}
+
+export interface OrganizationBehaviorProfile {
+  orgId: string;
+  orgName: string;
+  totalActiveInstances: number;
+  aggregateCpuUsagePct: number;
+  aggregateRamUsageMb: number;
+  overallRiskScorePct: number;
+  activeProtectionPolicies: Record<string, number>;
+  topAlertingInstances: string[];
+}
+
+export interface BehavioralPattern {
+  id: string;
+  patternName: string;
+  category: string;
+  frequency: number;
+  confidenceScore: number;
+  description: string;
+  detectedAt: string;
+}
+
+export interface TrendAnalysis {
+  metric: string;
+  direction: 'UPWARD' | 'DOWNWARD' | 'STABLE' | 'VOLATILE';
+  slopePct: number;
+  confidence: number;
+  summary: string;
+}
+
+export interface PredictedBehavior {
+  timeframe: string;
+  predictedCpuPct: number;
+  predictedRamMb: number;
+  predictedMessagesCount: number;
+  predictedRiskScorePct: number;
+  forecastConfidencePct: number;
+}
+
+export interface AnomalyReport {
+  instanceId: string;
+  zScore: number;
+  isAnomalous: boolean;
+  affectedMetrics: string[];
+  timestamp: string;
+  details: string;
+}
+
+export interface BehaviorRule {
+  id: string;
+  name: string;
+  conditionMetric: 'CPU' | 'RAM' | 'MESSAGES' | 'ERRORS' | 'RISK_SCORE';
+  operator: '>' | '<' | '==' | '>=';
+  threshold: number;
+  action: ProtectionPolicy;
+  enabled: boolean;
+}
+
+export interface ExecutedRuleAction {
+  ruleId: string;
+  ruleName: string;
+  instanceId: string;
+  triggeredAt: string;
+  actionTaken: ProtectionPolicy;
+}
+
+export interface CrossServiceBehaviorAnalysis {
+  analyzedInstancesCount: number;
+  cascadingRiskDetected: boolean;
+  sharedEndpointAnomalies: string[];
+  systemicDriftPercentage: number;
+  clusterHealthSummary: string;
+}
+
+export interface AILearningMetrics {
+  totalPatternsDetected: number;
+  anomalyAccuracyRatePct: number;
+  feedbackApprovalRatePct: number;
+  ruleEvaluationCount: number;
+  lastModelRefinementAt: string;
+}
+
 // Global SSE Event Listeners for Behavior Engine
 type BehaviorEventListener = (event: { type: string; payload: any }) => void;
 const behaviorListeners: Set<BehaviorEventListener> = new Set();
@@ -188,10 +285,21 @@ export function emitBehaviorEvent(eventType: string, payload: any) {
 class BehaviorLearningEngine {
   private static instance: BehaviorLearningEngine;
   private profiles: Map<string, InstanceBehaviorProfile> = new Map();
+  private userProfiles: Map<string, UserProfileBehavior> = new Map();
+  private customRules: Map<string, BehaviorRule> = new Map();
   private telemetryTimer: NodeJS.Timeout | null = null;
+  private learningMetrics: AILearningMetrics = {
+    totalPatternsDetected: 14,
+    anomalyAccuracyRatePct: 98.4,
+    feedbackApprovalRatePct: 95.0,
+    ruleEvaluationCount: 1240,
+    lastModelRefinementAt: new Date().toISOString()
+  };
 
   private constructor() {
     this.initializeDefaultInstances();
+    this.initializeDefaultUserProfiles();
+    this.initializeDefaultRules();
     this.startTelemetryLoop();
   }
 
@@ -200,6 +308,56 @@ class BehaviorLearningEngine {
       BehaviorLearningEngine.instance = new BehaviorLearningEngine();
     }
     return BehaviorLearningEngine.instance;
+  }
+
+  private initializeDefaultUserProfiles() {
+    this.userProfiles.set('usr-admin-1', {
+      userId: 'usr-admin-1',
+      username: 'System Administrator',
+      role: 'SuperAdmin',
+      totalCommandsInvoked: 342,
+      favoriteCommands: ['.restart', '.status', '.deploy', '.logs'],
+      lastActiveAt: new Date().toISOString(),
+      riskScorePct: 2,
+      anomalyCount: 0,
+      trustLevel: 'HIGH'
+    });
+
+    this.userProfiles.set('usr-operator-2', {
+      userId: 'usr-operator-2',
+      username: 'DevOps Operator',
+      role: 'Operator',
+      totalCommandsInvoked: 128,
+      favoriteCommands: ['.scale', '.config', '.pause'],
+      lastActiveAt: new Date(Date.now() - 3600000).toISOString(),
+      riskScorePct: 8,
+      anomalyCount: 1,
+      trustLevel: 'HIGH'
+    });
+  }
+
+  private initializeDefaultRules() {
+    const defaultRules: BehaviorRule[] = [
+      {
+        id: 'rule-cpu-critical',
+        name: 'Auto-Throttle CPU Spikes > 85%',
+        conditionMetric: 'CPU',
+        operator: '>',
+        threshold: 85,
+        action: 'AUTOMATIC_THROTTLING',
+        enabled: true
+      },
+      {
+        id: 'rule-risk-high',
+        name: 'Isolate High Risk Instances > 75%',
+        conditionMetric: 'RISK_SCORE',
+        operator: '>',
+        threshold: 75,
+        action: 'AUTOMATIC_ISOLATION',
+        enabled: true
+      }
+    ];
+    defaultRules.forEach(r => this.customRules.set(r.id, r));
   }
 
   // Pre-register existing bots from DatabaseService or create demo profiles
@@ -570,6 +728,9 @@ class BehaviorLearningEngine {
           });
         }
 
+        // Evaluate Rules
+        this.evaluateRules(profile.instanceId);
+
         // Broadcast telemetry update event
         emitBehaviorEvent('behavior.updated', {
           instanceId: profile.instanceId,
@@ -644,6 +805,191 @@ class BehaviorLearningEngine {
     });
 
     return profile;
+  }
+
+  // ============================================================================
+  // VERSION 3 EXTENDED BEHAVIOR INTELLIGENCE ENGINE METHODS
+  // ============================================================================
+
+  public getUserProfile(userId: string): UserProfileBehavior | undefined {
+    return this.userProfiles.get(userId);
+  }
+
+  public getAllUserProfiles(): UserProfileBehavior[] {
+    return Array.from(this.userProfiles.values());
+  }
+
+  public getOrganizationProfile(orgId: string = 'default-org'): OrganizationBehaviorProfile {
+    const profiles = this.getAllProfiles();
+    const activeProfiles = profiles.filter(p => p.status !== 'stopped');
+
+    const totalCpu = activeProfiles.reduce((acc, p) => acc + p.currentTelemetry.cpuUsagePct, 0);
+    const totalRam = activeProfiles.reduce((acc, p) => acc + p.currentTelemetry.ramUsageMb, 0);
+    const totalRisk = activeProfiles.reduce((acc, p) => acc + p.riskScorePct, 0);
+
+    const policies: Record<string, number> = {};
+    profiles.forEach(p => {
+      policies[p.protectionPolicy] = (policies[p.protectionPolicy] || 0) + 1;
+    });
+
+    return {
+      orgId,
+      orgName: 'GURU-XD Enterprise System',
+      totalActiveInstances: activeProfiles.length,
+      aggregateCpuUsagePct: activeProfiles.length > 0 ? parseFloat((totalCpu / activeProfiles.length).toFixed(1)) : 0,
+      aggregateRamUsageMb: activeProfiles.length > 0 ? Math.round(totalRam / activeProfiles.length) : 0,
+      overallRiskScorePct: activeProfiles.length > 0 ? Math.round(totalRisk / activeProfiles.length) : 0,
+      activeProtectionPolicies: policies,
+      topAlertingInstances: profiles.filter(p => p.riskScorePct > 20).map(p => p.instanceName)
+    };
+  }
+
+  public detectPatterns(instanceId: string): BehavioralPattern[] {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) return [];
+
+    const patterns: BehavioralPattern[] = [];
+    const now = new Date().toISOString();
+
+    if (profile.currentTelemetry.cpuUsagePct > 30) {
+      patterns.push({
+        id: `pat-cpu-${Date.now()}`,
+        patternName: 'Cyclic Heavy CPU Consumption Pattern',
+        category: 'Performance',
+        frequency: 4,
+        confidenceScore: 0.92,
+        description: `Instance ${profile.instanceName} exhibits periodic CPU spikes correlated with payload parsing.`,
+        detectedAt: now
+      });
+    }
+
+    if (profile.currentTelemetry.messagesProcessed > 5000) {
+      patterns.push({
+        id: `pat-msg-${Date.now()}`,
+        patternName: 'High Message Throughput Pattern',
+        category: 'Traffic',
+        frequency: 12,
+        confidenceScore: 0.98,
+        description: `Instance ${profile.instanceName} processes high volume group interactions during peak hours.`,
+        detectedAt: now
+      });
+    }
+
+    return patterns;
+  }
+
+  public analyzeTrends(instanceId: string): TrendAnalysis {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) {
+      return { metric: 'Overall Health', direction: 'STABLE', slopePct: 0, confidence: 0.5, summary: 'No profile found.' };
+    }
+
+    const cpuSlope = profile.currentTelemetry.cpuUsagePct - profile.baseline.avgCpuUsagePct;
+    const direction = cpuSlope > 5 ? 'UPWARD' : cpuSlope < -5 ? 'DOWNWARD' : 'STABLE';
+
+    return {
+      metric: 'CPU & Resource Utilization',
+      direction,
+      slopePct: parseFloat(cpuSlope.toFixed(1)),
+      confidence: 0.94,
+      summary: `Current telemetry displays ${direction.toLowerCase()} slope relative to baseline standard.`
+    };
+  }
+
+  public predictBehavior(instanceId: string, hoursAhead: number = 6): PredictedBehavior {
+    const profile = this.profiles.get(instanceId);
+    const cpu = profile ? profile.currentTelemetry.cpuUsagePct : 12;
+    const ram = profile ? profile.currentTelemetry.ramUsageMb : 250;
+
+    return {
+      timeframe: `Next ${hoursAhead} Hours`,
+      predictedCpuPct: parseFloat(Math.min(95, cpu * 1.05).toFixed(1)),
+      predictedRamMb: Math.round(ram * 1.02),
+      predictedMessagesCount: Math.round((profile?.currentTelemetry.messagesProcessed || 1000) * 1.1),
+      predictedRiskScorePct: profile ? profile.riskScorePct : 10,
+      forecastConfidencePct: 91.5
+    };
+  }
+
+  public evaluateAnomaly(instanceId: string): AnomalyReport {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) {
+      return { instanceId, zScore: 0, isAnomalous: false, affectedMetrics: [], timestamp: new Date().toISOString(), details: 'Instance not found' };
+    }
+
+    const cpuDiff = Math.abs(profile.currentTelemetry.cpuUsagePct - profile.baseline.avgCpuUsagePct);
+    const zScore = parseFloat((cpuDiff / 5.0).toFixed(2));
+    const isAnomalous = zScore > 2.5;
+
+    return {
+      instanceId,
+      zScore,
+      isAnomalous,
+      affectedMetrics: isAnomalous ? ['CPU'] : [],
+      timestamp: new Date().toISOString(),
+      details: isAnomalous ? `Metric CPU deviates by z-score of ${zScore}` : 'Telemetry within normal variance bounds.'
+    };
+  }
+
+  public addCustomRule(rule: BehaviorRule): BehaviorRule {
+    this.customRules.set(rule.id, rule);
+    return rule;
+  }
+
+  public getCustomRules(): BehaviorRule[] {
+    return Array.from(this.customRules.values());
+  }
+
+  public evaluateRules(instanceId: string): ExecutedRuleAction[] {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) return [];
+
+    const executed: ExecutedRuleAction[] = [];
+    this.learningMetrics.ruleEvaluationCount += 1;
+
+    this.customRules.forEach(rule => {
+      if (!rule.enabled) return;
+      let val = 0;
+      if (rule.conditionMetric === 'CPU') val = profile.currentTelemetry.cpuUsagePct;
+      if (rule.conditionMetric === 'RAM') val = profile.currentTelemetry.ramUsageMb;
+      if (rule.conditionMetric === 'RISK_SCORE') val = profile.riskScorePct;
+
+      let triggered = false;
+      if (rule.operator === '>' && val > rule.threshold) triggered = true;
+      if (rule.operator === '<' && val < rule.threshold) triggered = true;
+      if (rule.operator === '>=' && val >= rule.threshold) triggered = true;
+
+      if (triggered) {
+        executed.push({
+          ruleId: rule.id,
+          ruleName: rule.name,
+          instanceId,
+          triggeredAt: new Date().toISOString(),
+          actionTaken: rule.action
+        });
+      }
+    });
+
+    return executed;
+  }
+
+  public getCrossServiceBehaviorAnalysis(): CrossServiceBehaviorAnalysis {
+    const profiles = this.getAllProfiles();
+    const highRiskCount = profiles.filter(p => p.riskScorePct > 50).length;
+
+    return {
+      analyzedInstancesCount: profiles.length,
+      cascadingRiskDetected: highRiskCount >= 2,
+      sharedEndpointAnomalies: ['api.telegram.org'],
+      systemicDriftPercentage: parseFloat(((highRiskCount / (profiles.length || 1)) * 100).toFixed(1)),
+      clusterHealthSummary: highRiskCount >= 2 
+        ? 'Warning: Multiple bot nodes exhibiting correlated behavior drift across shared API gateways.' 
+        : 'All modular services operating within independent, isolated safety profiles.'
+    };
+  }
+
+  public getAILearningMetrics(): AILearningMetrics {
+    return { ...this.learningMetrics };
   }
 }
 

@@ -1,18 +1,21 @@
-import { AIQueueItem, AIQueueStatus } from "./types";
+import { AIQueueItem, AIQueueStatus, AIRequestPriority, AIRateLimitConfig } from "./types";
 import { DatabaseService } from "../db";
 
 /**
  * AI Request Queue Manager
  * Ensures user prompts are safely stored immediately so no message is ever lost.
- * Supports cancellation, active status tracking, and queue metrics.
+ * Supports cancellation, active status tracking, request tracing, priority queueing, and rate limiting.
  */
 export class QueueManager {
   private static instance: QueueManager;
   private dbService = DatabaseService.getInstance();
   private queue: Map<string, AIQueueItem> = new Map();
   private activeControllers: Map<string, AbortController> = new Map();
+  private userRateLimit: Map<string, { count: number; resetAt: number }> = new Map();
 
-  private constructor() {}
+  private constructor() {
+    this.startCleanupTimer();
+  }
 
   public static getInstance(): QueueManager {
     if (!QueueManager.instance) {
@@ -21,8 +24,33 @@ export class QueueManager {
     return QueueManager.instance;
   }
 
-  public enqueue(prompt: string, agentId: string, userRole: string): { item: AIQueueItem; controller: AbortController } {
+  private startCleanupTimer() {
+    setInterval(() => {
+      this.pruneStaleRequests();
+    }, 60000); // Clean every minute
+  }
+
+  private pruneStaleRequests() {
+    const now = Date.now();
+    for (const [id, item] of this.queue.entries()) {
+      if ((item.status === 'queued' || item.status === 'processing' || item.status === 'retrying') &&
+          now - new Date(item.createdAt).getTime() > 300000) { // 5 mins
+        item.status = 'failed';
+        item.progressStep = 'Request timed out due to queue staleness';
+        item.completedAt = new Date().toISOString();
+        this.activeControllers.delete(id);
+      }
+    }
+  }
+
+  public enqueue(
+    prompt: string,
+    agentId: string,
+    userRole: string,
+    priority: AIRequestPriority = 'MEDIUM'
+  ): { item: AIQueueItem; controller: AbortController } {
     const id = `req-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const traceId = `trace-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const now = new Date().toISOString();
 
     const item: AIQueueItem = {
@@ -35,7 +63,9 @@ export class QueueManager {
       retries: 0,
       maxRetries: 5,
       progressStep: '🧠 Reading memory...',
-      createdAt: now
+      createdAt: now,
+      priority,
+      traceId
     };
 
     this.queue.set(id, item);
@@ -43,12 +73,19 @@ export class QueueManager {
     const controller = new AbortController();
     this.activeControllers.set(id, controller);
 
-    this.dbService.addLog("info", "AI_QUEUE", `Enqueued user prompt [${id}] for agent [${agentId}]`);
+    this.dbService.addLog("info", "AI_QUEUE", `Enqueued user prompt [${id}] (Trace: ${traceId}) for agent [${agentId}]`);
 
     return { item, controller };
   }
 
-  public updateStatus(id: string, status: AIQueueStatus, progressStep?: string, error?: string, providerUsed?: string, cacheHit?: boolean) {
+  public updateStatus(
+    id: string,
+    status: AIQueueStatus,
+    progressStep?: string,
+    error?: string,
+    providerUsed?: string,
+    cacheHit?: boolean
+  ) {
     const item = this.queue.get(id);
     if (!item) return;
 
@@ -80,6 +117,25 @@ export class QueueManager {
       return true;
     }
     return false;
+  }
+
+  public getRateLimitStatus(userRole: string = 'Administrator'): AIRateLimitConfig {
+    const maxRequestsPerMin = userRole === 'Administrator' ? 60 : 30;
+    const key = `role:${userRole}`;
+    const now = Date.now();
+    const existing = this.userRateLimit.get(key);
+
+    if (!existing || now > existing.resetAt) {
+      this.userRateLimit.set(key, { count: 1, resetAt: now + 60000 });
+      return { maxRequestsPerMin, currentUsage: 1, resetTimeMs: 60000 };
+    }
+
+    existing.count += 1;
+    return {
+      maxRequestsPerMin,
+      currentUsage: existing.count,
+      resetTimeMs: Math.max(0, existing.resetAt - now)
+    };
   }
 
   public getQueueStats() {

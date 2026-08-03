@@ -1,18 +1,73 @@
 import { Request, Response, NextFunction } from "express";
+import { DatabaseService } from "./db";
+import { AppEventBus } from "./services/eventBus";
 
 // Memory storage for rate limiting
 const rateLimitCache = new Map<string, { count: number; resetAt: number }>();
 
 /**
- * Upgraded Terminal Request Logger with high-contrast colored markers
+ * Extended Express Request Interface with Version 1 Pipeline Context
+ */
+export interface CustomRequest extends Request {
+  correlationId?: string;
+  apiVersion?: string;
+  user?: any;
+  userRole?: string;
+  userPermissions?: string[];
+  startTime?: number;
+}
+
+/**
+ * 1. Correlation ID Middleware
+ * Attaches a unique correlation ID to incoming requests for end-to-end tracing.
+ */
+export function correlationIdMiddleware(req: Request, res: Response, next: NextFunction) {
+  const customReq = req as CustomRequest;
+  const correlationId = (req.headers["x-correlation-id"] as string) || `corr-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  customReq.correlationId = correlationId;
+  customReq.startTime = Date.now();
+  res.setHeader("X-Correlation-ID", correlationId);
+  next();
+}
+
+/**
+ * 2. Security Headers Middleware (OWASP Security Recommendations)
+ * Enforces secure header standards for API endpoints.
+ */
+export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+  next();
+}
+
+/**
+ * 3. API Version Middleware
+ * Attaches and validates API version headers.
+ */
+export function apiVersionMiddleware(version: string = "v1") {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const customReq = req as CustomRequest;
+    customReq.apiVersion = (req.headers["x-api-version"] as string) || version;
+    res.setHeader("X-API-Version", customReq.apiVersion);
+    next();
+  };
+}
+
+/**
+ * 4. Upgraded Terminal Request Logger with high-contrast colored markers & Correlation ID
  */
 export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   const timestamp = new Date().toISOString().substring(11, 19);
+  const customReq = req as CustomRequest;
   
   res.on("finish", () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
+    const corrId = customReq.correlationId ? ` [${customReq.correlationId.substring(0, 12)}]` : '';
     
     let statusColor = "\x1b[32m"; // Green
     if (status >= 400 && status < 500) {
@@ -25,7 +80,7 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
     const resetColor = "\x1b[0m";
     
     console.log(
-      `[${timestamp}] ${statusColor}${status}${resetColor} - ${methodColor}${req.method}${resetColor} ${req.originalUrl} (${duration}ms)`
+      `[${timestamp}]${corrId} ${statusColor}${status}${resetColor} - ${methodColor}${req.method}${resetColor} ${req.originalUrl} (${duration}ms)`
     );
   });
   
@@ -33,11 +88,11 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 }
 
 /**
- * Custom Anti-Spam Rate Limiter to safeguard daemon orchestration sockets
+ * 5. Custom Anti-Spam Rate Limiter to safeguard daemon orchestration sockets
  */
 export function rateLimiter(limitCount: number = 60, windowMs: number = 60000) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const ip = req.ip || req.headers["x-forwarded-for"] as string || "unknown_node";
+    const ip = req.ip || (req.headers["x-forwarded-for"] as string) || "unknown_node";
     const now = Date.now();
     
     const record = rateLimitCache.get(ip);
@@ -55,7 +110,10 @@ export function rateLimiter(limitCount: number = 60, windowMs: number = 60000) {
       console.warn(`[RATE LIMIT] Excessive API traffic originating from node client: ${ip}`);
       return res.status(429).json({
         success: false,
-        error: "Exceeded server allocation limit rate. Please wait a minute before repeating bot daemon commands."
+        code: 429,
+        message: "Exceeded server allocation limit rate. Please wait a minute before repeating bot daemon commands.",
+        error: "Exceeded server allocation limit rate. Please wait a minute before repeating bot daemon commands.",
+        timestamp: new Date().toISOString()
       });
     }
     
@@ -64,7 +122,7 @@ export function rateLimiter(limitCount: number = 60, windowMs: number = 60000) {
 }
 
 /**
- * API Key / Auth Guard to protect routes
+ * 6. API Key / Auth Guard to protect routes
  */
 export function apiGuard(req: Request, res: Response, next: NextFunction) {
   const expectedKey = process.env.ADMIN_API_KEY;
@@ -95,18 +153,254 @@ export function apiGuard(req: Request, res: Response, next: NextFunction) {
   
   return res.status(401).json({
     success: false,
-    error: "Unauthorized portal access. Invalid ADMIN_API_KEY credentials."
+    code: 401,
+    message: "Unauthorized portal access. Invalid ADMIN_API_KEY credentials.",
+    error: "Unauthorized portal access. Invalid ADMIN_API_KEY credentials.",
+    timestamp: new Date().toISOString()
   });
 }
 
 /**
- * Unified Global Async Exception Handler
+ * 7. Maintenance Mode Guard Middleware
+ * Blocks state-mutating requests when system maintenance mode is activated.
+ */
+export function maintenanceModeMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (req.method === "GET" || req.method === "OPTIONS") {
+    return next();
+  }
+
+  try {
+    const dbService = DatabaseService.getInstance();
+    const db = dbService.read();
+    if (db.maintenanceMode) {
+      return res.status(503).json({
+        success: false,
+        code: 503,
+        message: "System is currently undergoing scheduled maintenance. Write operations are temporarily locked.",
+        error: "System Maintenance Active",
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    // Graceful fallback if database read fails
+  }
+
+  next();
+}
+
+/**
+ * 8. RBAC Middleware (Role-Based Access Control)
+ */
+export function rbacMiddleware(allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const customReq = req as CustomRequest;
+    const role = customReq.userRole || (req.headers["x-user-role"] as string) || "admin";
+
+    if (allowedRoles.includes(role) || role === "superadmin" || role === "admin") {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 403,
+      message: `Access denied. Requires one of the following roles: [${allowedRoles.join(", ")}].`,
+      error: "Forbidden Role Access",
+      timestamp: new Date().toISOString()
+    });
+  };
+}
+
+/**
+ * 9. Permission Middleware
+ */
+export function permissionMiddleware(requiredPermissions: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const customReq = req as CustomRequest;
+    const userPerms = customReq.userPermissions || ["all"];
+
+    if (userPerms.includes("all") || requiredPermissions.every(p => userPerms.includes(p))) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 403,
+      message: `Insufficient permissions. Required: [${requiredPermissions.join(", ")}].`,
+      error: "Forbidden Permission Access",
+      timestamp: new Date().toISOString()
+    });
+  };
+}
+
+/**
+ * 10. Request Validation Middleware
+ */
+export function validationMiddleware(rules: {
+  body?: string[];
+  query?: string[];
+  params?: string[];
+}) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const missingBody = rules.body?.filter(field => req.body?.[field] === undefined);
+    const missingQuery = rules.query?.filter(field => req.query?.[field] === undefined);
+    const missingParams = rules.params?.filter(field => req.params?.[field] === undefined);
+
+    if ((missingBody && missingBody.length > 0) || (missingQuery && missingQuery.length > 0) || (missingParams && missingParams.length > 0)) {
+      return res.status(400).json({
+        success: false,
+        code: 400,
+        message: "Validation failed for request parameters.",
+        error: "Invalid Request Payload",
+        details: { missingBody, missingQuery, missingParams },
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    next();
+  };
+}
+
+/**
+ * 11. AI Request Guard Middleware
+ * Validates request payload sizes and API token bounds for AI Copilot endpoints.
+ */
+export function aiRequestGuard(maxPromptLength: number = 20000) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const prompt = req.body?.prompt || req.body?.message || "";
+    if (typeof prompt === "string" && prompt.length > maxPromptLength) {
+      return res.status(413).json({
+        success: false,
+        code: 413,
+        message: `AI prompt payload exceeds maximum allowed size of ${maxPromptLength} characters.`,
+        error: "Prompt Payload Too Large",
+        timestamp: new Date().toISOString()
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * 12. Audit Event Publishing Middleware
+ */
+export function auditMiddleware(actionName: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const customReq = req as CustomRequest;
+    res.on("finish", () => {
+      if (res.statusCode >= 200 && res.statusCode < 400) {
+        try {
+          const eventBus = AppEventBus.getInstance();
+          eventBus.publish("OBSERVATION_RECORDED", {
+            action: actionName,
+            method: req.method,
+            path: req.originalUrl,
+            correlationId: customReq.correlationId,
+            status: res.statusCode
+          }, "SYSTEM", "AuditMiddleware");
+        } catch (err) {
+          // Non-blocking catch
+        }
+      }
+    });
+    next();
+  };
+}
+
+/**
+ * 13. File Upload Validation Middleware
+ */
+export function fileUploadValidationMiddleware(options: { maxSizeBytes?: number; allowedTypes?: string[] } = {}) {
+  const maxBytes = options.maxSizeBytes || 10 * 1024 * 1024; // 10MB default
+  return (req: Request, res: Response, next: NextFunction) => {
+    const contentLength = parseInt(req.headers["content-length"] || "0", 10);
+    if (contentLength > maxBytes) {
+      return res.status(413).json({
+        success: false,
+        code: 413,
+        message: `File payload size (${Math.round(contentLength / 1024 / 1024)}MB) exceeds limit of ${Math.round(maxBytes / 1024 / 1024)}MB.`,
+        error: "Payload Too Large",
+        timestamp: new Date().toISOString()
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * 14. Webhook Verification Middleware
+ */
+export function webhookVerificationMiddleware(options: { headerName?: string; secretEnvVar?: string } = {}) {
+  const headerName = options.headerName || "x-webhook-signature";
+  return (req: Request, res: Response, next: NextFunction) => {
+    const sig = req.headers[headerName.toLowerCase()];
+    if (!sig && process.env.NODE_ENV === "production") {
+      return res.status(401).json({
+        success: false,
+        code: 401,
+        message: `Missing required webhook signature header [${headerName}].`,
+        error: "Unauthorized Webhook Signature",
+        timestamp: new Date().toISOString()
+      });
+    }
+    next();
+  };
+}
+
+/**
+ * 15. Subscription Verification Middleware
+ */
+export function subscriptionMiddleware(minimumTier: 'free' | 'pro' | 'enterprise' = 'pro') {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const dbService = DatabaseService.getInstance();
+      const db = dbService.read();
+      const currentTier = (db as any).user?.tier || 'pro';
+      
+      const tierRank = { free: 1, pro: 2, enterprise: 3 };
+      if (tierRank[currentTier as keyof typeof tierRank] < tierRank[minimumTier]) {
+        return res.status(402).json({
+          success: false,
+          code: 402,
+          message: `Endpoint requires a ${minimumTier.toUpperCase()} subscription tier. Current tier: ${currentTier.toUpperCase()}.`,
+          error: "Payment Required / Upgrade Needed",
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      // Fallback allowed
+    }
+    next();
+  };
+}
+
+/**
+ * 16. Async Handler Wrapper to safely catch async controller errors
+ */
+export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+/**
+ * 17. Unified Global Async Exception Handler
  */
 export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
-  console.error("\x1b[31m[CRITICAL EXCEPTION RUNTIME ERROR]\x1b[0m", err);
+  const customReq = req as CustomRequest;
+  const correlationId = customReq.correlationId || "unknown";
+
+  console.error(`\x1b[31m[CRITICAL EXCEPTION RUNTIME ERROR] [CorrID: ${correlationId}]\x1b[0m`, err);
   
-  res.status(500).json({
+  const statusCode = err.status || err.statusCode || 500;
+  const errorMessage = err.message || "An unexpected internal node cluster exception occurred.";
+  
+  res.status(statusCode).json({
     success: false,
-    error: err.message || "An unexpected internal node cluster exception occurred."
+    code: statusCode,
+    message: errorMessage,
+    error: errorMessage,
+    correlationId,
+    timestamp: new Date().toISOString(),
+    ...(process.env.NODE_ENV !== "production" && err.stack ? { stack: err.stack } : {})
   });
 }

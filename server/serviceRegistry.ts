@@ -6,6 +6,8 @@ import crypto from 'crypto';
 
 export type ServiceStatus = 'ACTIVE' | 'DEGRADED' | 'MAINTENANCE' | 'OFFLINE';
 
+export type ServiceLifecycleState = 'UNINITIALIZED' | 'INITIALIZING' | 'READY' | 'SHUTTING_DOWN' | 'SHUTDOWN';
+
 export type TelemetryCategory =
   | 'Performance'
   | 'Security'
@@ -45,6 +47,7 @@ export interface ServiceMetadata {
   version: string;
   description: string;
   status: ServiceStatus;
+  lifecycleState?: ServiceLifecycleState;
   health: number; // 0 - 100
   supportedEvents: string[];
   telemetryTypes: TelemetryCategory[];
@@ -86,6 +89,29 @@ export interface ServiceVersionHistory {
   correlatedIncidentsCount: number;
 }
 
+// Version 2 Extension Interfaces
+export interface AIProviderRegistration {
+  providerId: string;
+  name: string;
+  type: 'gemini' | 'openai' | 'anthropic' | 'local_llm' | 'custom';
+  status: 'active' | 'inactive' | 'rate_limited';
+  supportedModels: string[];
+  capabilities: string[];
+  latencyMs?: number;
+}
+
+export interface DynamicPluginRegistration {
+  pluginId: string;
+  name: string;
+  version: string;
+  author: string;
+  enabled: boolean;
+  capabilities: string[];
+  entryPoint?: string;
+}
+
+export type HealthCheckFn = () => Promise<{ healthy: boolean; score: number; details?: string }>;
+
 // Global SSE Event Listener definition
 type ServiceRegistryListener = (event: { type: string; payload: any }) => void;
 const registryListeners: Set<ServiceRegistryListener> = new Set();
@@ -118,8 +144,14 @@ export class ServiceRegistry {
   private telemetryBuffer: StandardTelemetry[] = [];
   private eventBuffer: StandardEvent[] = [];
 
+  // Version 2 Extended Platform Collections
+  private aiProviders: Map<string, AIProviderRegistration> = new Map();
+  private dynamicPlugins: Map<string, DynamicPluginRegistration> = new Map();
+  private healthCheckers: Map<string, HealthCheckFn> = new Map();
+
   private constructor() {
     this.seedDefaultServices();
+    this.seedDefaultAIProviders();
   }
 
   public static getInstance(): ServiceRegistry {
@@ -138,6 +170,7 @@ export class ServiceRegistry {
         version: 'v2.1.0',
         description: 'Automated multi-cloud container orchestration and deployment pipeline.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 98,
         supportedEvents: ['deployment.started', 'deployment.completed', 'deployment.failed'],
         telemetryTypes: ['Performance', 'Metrics', 'Instance Activity'],
@@ -151,6 +184,7 @@ export class ServiceRegistry {
         version: 'v2.4.0',
         description: 'AI-driven category baseline learning, behavior drift detection, and trust badge calculation.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 96,
         supportedEvents: ['behavior.drift.detected', 'behavior.profile.updated', 'trust.badge.changed'],
         telemetryTypes: ['Behavior', 'Metrics', 'Security'],
@@ -166,6 +200,7 @@ export class ServiceRegistry {
         version: 'v1.2.0',
         description: 'Intelligent analysis layer producing cause-and-effect evidence chains, confidence scores, and safe admin recommendations.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 99,
         supportedEvents: ['security.analysis.started', 'security.analysis.completed', 'security.analysis.critical'],
         telemetryTypes: ['Security', 'Errors', 'Warnings', 'Behavior'],
@@ -179,6 +214,7 @@ export class ServiceRegistry {
         version: 'v1.8.0',
         description: 'Isolated testing environment for validating bot plugins and binary updates before production rollout.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 95,
         supportedEvents: ['sandbox.execution.started', 'sandbox.validation.passed', 'sandbox.threat.blocked'],
         telemetryTypes: ['Security', 'Plugin Activity', 'Errors'],
@@ -192,6 +228,7 @@ export class ServiceRegistry {
         version: 'v3.0.1',
         description: 'High-frequency telemetry scraper for CPU, Memory, Disk Write, and Network Sockets.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 100,
         supportedEvents: ['metrics.scraped', 'threshold.exceeded', 'node.heartbeat'],
         telemetryTypes: ['Performance', 'Metrics', 'Resource Usage'],
@@ -205,6 +242,7 @@ export class ServiceRegistry {
         version: 'v1.5.2',
         description: 'Dynamic JavaScript plugin injection, sandbox isolation, and marketplace module loader.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 94,
         supportedEvents: ['plugin.installed', 'plugin.uninstalled', 'plugin.execution.error'],
         telemetryTypes: ['Plugin Activity', 'Configuration Changes', 'Errors'],
@@ -218,6 +256,7 @@ export class ServiceRegistry {
         version: 'v2.0.0',
         description: 'System-wide health score calculation and automated self-healing supervisor.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 97,
         supportedEvents: ['health.evaluated', 'self_healing.triggered'],
         telemetryTypes: ['Health', 'Metrics', 'Errors'],
@@ -231,6 +270,7 @@ export class ServiceRegistry {
         version: 'v1.9.0',
         description: 'Latency optimization, thread concurrency capping, and queue throughput balancer.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 98,
         supportedEvents: ['performance.optimized', 'latency.alert'],
         telemetryTypes: ['Performance', 'Resource Usage'],
@@ -244,6 +284,7 @@ export class ServiceRegistry {
         version: 'v2.2.0',
         description: 'Unified time-series data ingestor and standardized telemetry protocol router.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 100,
         supportedEvents: ['telemetry.ingested', 'telemetry.flushed'],
         telemetryTypes: ['Performance', 'Security', 'Behavior', 'Health', 'Resource Usage'],
@@ -257,6 +298,7 @@ export class ServiceRegistry {
         version: 'v1.1.0',
         description: 'Immutable compliance logging for administrator actions, key rotations, and access grants.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 100,
         supportedEvents: ['audit.logged', 'compliance.verified'],
         telemetryTypes: ['User Activity', 'Configuration Changes'],
@@ -270,6 +312,7 @@ export class ServiceRegistry {
         version: 'v1.0.0',
         description: 'Multi-channel alert dispatcher for Webhooks, Telegram, WhatsApp, and SSE streams.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 99,
         supportedEvents: ['notification.sent', 'notification.failed'],
         telemetryTypes: ['User Activity'],
@@ -283,6 +326,7 @@ export class ServiceRegistry {
         version: 'v2.5.0',
         description: 'Container lifecycle daemon managing start, stop, restart, and state persistence.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 99,
         supportedEvents: ['instance.created', 'instance.restarted', 'instance.terminated'],
         telemetryTypes: ['Instance Activity', 'Resource Usage'],
@@ -296,6 +340,7 @@ export class ServiceRegistry {
         version: 'v1.0.0',
         description: 'Automated state snapshots, database dumps, and disaster recovery store.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 100,
         supportedEvents: ['backup.completed', 'backup.restored'],
         telemetryTypes: ['Configuration Changes', 'Health'],
@@ -309,6 +354,7 @@ export class ServiceRegistry {
         version: 'v1.0.0',
         description: 'Enterprise license tier verification and capability entitlement validator.',
         status: 'ACTIVE',
+        lifecycleState: 'READY',
         health: 100,
         supportedEvents: ['license.validated'],
         telemetryTypes: ['User Activity'],
@@ -331,6 +377,18 @@ export class ServiceRegistry {
     });
   }
 
+  private seedDefaultAIProviders() {
+    this.registerAIProvider({
+      providerId: 'prov-gemini-flash',
+      name: 'Google Gemini Flash 2.5',
+      type: 'gemini',
+      status: 'active',
+      supportedModels: ['gemini-2.5-flash', 'gemini-1.5-pro'],
+      capabilities: ['text-generation', 'vision', 'code-execution', 'function-calling'],
+      latencyMs: 140
+    });
+  }
+
   // Register or update a service in the Central Registry
   public registerService(metadata: ServiceMetadata): ServiceMetadata {
     const existing = this.services.get(metadata.serviceId);
@@ -346,6 +404,10 @@ export class ServiceRegistry {
       });
       metadata.previousVersion = existing.version;
       metadata.lastVersionUpdateAt = new Date().toISOString();
+    }
+
+    if (!metadata.lifecycleState) {
+      metadata.lifecycleState = 'READY';
     }
 
     this.services.set(metadata.serviceId, metadata);
@@ -436,6 +498,166 @@ export class ServiceRegistry {
 
   public getRecentEvents(): StandardEvent[] {
     return this.eventBuffer;
+  }
+
+  // ============================================================================
+  // VERSION 2 EXTENDED PLATFORM LIFECYCLE & DISCOVERY SERVICES
+  // ============================================================================
+
+  /**
+   * Service Lifecycle Management
+   */
+  public async initService(serviceId: string): Promise<boolean> {
+    const srv = this.services.get(serviceId);
+    if (!srv) return false;
+    srv.lifecycleState = 'INITIALIZING';
+    emitRegistryEvent('service.lifecycle.initializing', { serviceId });
+
+    // Execute dependency check
+    const depCheck = this.validateDependencies(serviceId);
+    if (!depCheck.valid) {
+      console.warn(`[SERVICE REGISTRY] Service ${serviceId} init warning: missing deps [${depCheck.missingDependencies.join(', ')}]`);
+    }
+
+    srv.lifecycleState = 'READY';
+    srv.status = 'ACTIVE';
+    emitRegistryEvent('service.lifecycle.ready', { serviceId });
+    return true;
+  }
+
+  public async shutdownService(serviceId: string): Promise<boolean> {
+    const srv = this.services.get(serviceId);
+    if (!srv) return false;
+    srv.lifecycleState = 'SHUTTING_DOWN';
+    emitRegistryEvent('service.lifecycle.shutting_down', { serviceId });
+
+    srv.lifecycleState = 'SHUTDOWN';
+    srv.status = 'OFFLINE';
+    emitRegistryEvent('service.lifecycle.shutdown', { serviceId });
+    return true;
+  }
+
+  public async shutdownAll(): Promise<void> {
+    for (const srvId of this.services.keys()) {
+      await this.shutdownService(srvId);
+    }
+  }
+
+  /**
+   * Startup Sequence & Dependency Graph Computation
+   */
+  public validateDependencies(serviceId: string): { valid: boolean; missingDependencies: string[] } {
+    const srv = this.services.get(serviceId);
+    if (!srv) return { valid: false, missingDependencies: ['SERVICE_NOT_FOUND'] };
+
+    const missing = srv.dependencies.filter(depId => !this.services.has(depId));
+    return {
+      valid: missing.length === 0,
+      missingDependencies: missing
+    };
+  }
+
+  public getDependencyGraph(): Record<string, string[]> {
+    const graph: Record<string, string[]> = {};
+    this.services.forEach((meta, id) => {
+      graph[id] = [...meta.dependencies];
+    });
+    return graph;
+  }
+
+  public async executeStartupSequence(): Promise<{ success: boolean; sequence: string[] }> {
+    const sequence: string[] = [];
+    const visited = new Set<string>();
+
+    const visit = async (serviceId: string) => {
+      if (visited.has(serviceId)) return;
+      visited.add(serviceId);
+      const srv = this.services.get(serviceId);
+      if (srv) {
+        for (const dep of srv.dependencies) {
+          await visit(dep);
+        }
+        await this.initService(serviceId);
+        sequence.push(serviceId);
+      }
+    };
+
+    for (const serviceId of this.services.keys()) {
+      await visit(serviceId);
+    }
+
+    return { success: true, sequence };
+  }
+
+  /**
+   * Health Registration Hooks
+   */
+  public registerHealthChecker(serviceId: string, fn: HealthCheckFn): void {
+    this.healthCheckers.set(serviceId, fn);
+  }
+
+  public async runHealthCheck(serviceId: string): Promise<{ healthy: boolean; score: number; details?: string }> {
+    const checker = this.healthCheckers.get(serviceId);
+    if (!checker) {
+      const srv = this.services.get(serviceId);
+      return { healthy: srv ? srv.status === 'ACTIVE' : false, score: srv ? srv.health : 0 };
+    }
+    try {
+      const result = await checker();
+      this.updateServiceStatus(serviceId, result.healthy ? 'ACTIVE' : 'DEGRADED', result.score);
+      return result;
+    } catch (err: any) {
+      this.updateServiceStatus(serviceId, 'DEGRADED', 50);
+      return { healthy: false, score: 50, details: err.message };
+    }
+  }
+
+  /**
+   * Runtime Service Discovery
+   */
+  public discoverServicesByCapability(capability: ServiceCapability): ServiceMetadata[] {
+    return Array.from(this.services.values()).filter(s => s.capabilities.includes(capability));
+  }
+
+  public discoverServicesByStatus(status: ServiceStatus): ServiceMetadata[] {
+    return Array.from(this.services.values()).filter(s => s.status === status);
+  }
+
+  /**
+   * Dynamic AI Provider & Plugin Registration
+   */
+  public registerAIProvider(provider: AIProviderRegistration): AIProviderRegistration {
+    this.aiProviders.set(provider.providerId, provider);
+    emitRegistryEvent('ai_provider.registered', { provider });
+    return provider;
+  }
+
+  public getAIProviders(): AIProviderRegistration[] {
+    return Array.from(this.aiProviders.values());
+  }
+
+  public unregisterAIProvider(providerId: string): boolean {
+    const removed = this.aiProviders.delete(providerId);
+    if (removed) emitRegistryEvent('ai_provider.unregistered', { providerId });
+    return removed;
+  }
+
+  public registerPluginModule(plugin: DynamicPluginRegistration): DynamicPluginRegistration {
+    this.dynamicPlugins.set(plugin.pluginId, plugin);
+    emitRegistryEvent('plugin_module.registered', { plugin });
+    return plugin;
+  }
+
+  public getRegisteredPlugins(): DynamicPluginRegistration[] {
+    return Array.from(this.dynamicPlugins.values());
+  }
+
+  public togglePluginState(pluginId: string, enabled: boolean): boolean {
+    const plugin = this.dynamicPlugins.get(pluginId);
+    if (!plugin) return false;
+    plugin.enabled = enabled;
+    emitRegistryEvent('plugin_module.state_changed', { pluginId, enabled });
+    return true;
   }
 }
 

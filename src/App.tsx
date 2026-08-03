@@ -50,6 +50,8 @@ import StorageView from './components/StorageView';
 import NotificationsView from './components/NotificationsView';
 import BillingView from './components/BillingView';
 import HelpView from './components/HelpView';
+import EnvConfigManagerView from './components/EnvConfigManagerView';
+import GuruArchitectureVersionsView from './components/GuruArchitectureVersionsView';
 
 import { Sparkles, Key, Lock, AlertCircle, Bolt, Terminal, LayoutDashboard, ScrollText, Menu, Bot as BotIcon, ShieldAlert } from 'lucide-react';
 
@@ -1539,6 +1541,10 @@ export default function App() {
       case 'help':
       case 'sdk':
         return <HelpView />;
+      case 'env-config':
+        return <EnvConfigManagerView />;
+      case 'architecture-versions':
+        return <GuruArchitectureVersionsView />;
       default:
         return <DashboardView bots={bots} logs={logs} systemMetrics={systemMetrics} onBotClick={() => {}} onDeployClick={() => {}} onRefresh={triggerSync} />;
     }

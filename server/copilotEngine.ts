@@ -74,57 +74,66 @@ export interface CopilotAgentProfile {
 export const COPILOT_AGENTS: CopilotAgentProfile[] = [
   {
     id: "guru-core",
-    name: "GURU Core",
-    role: "AI Cluster Host & Master Orchestrator",
-    description: "Primary hypervisor host agent overseeing cluster state, bots, and platform architecture.",
+    name: "GURU Core AI",
+    role: "Core AI Orchestrator & Operating System",
+    description: "Primary intelligent operating system for GURU-XD, overseeing platform orchestration, decision making, AI coordination, and memory management.",
     avatarColor: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-    domain: "Orchestration & Core Systems",
-    systemInstruction: "You are GURU Core, the primary AI Cluster Host for GURU-XD. You oversee container health, bot daemons, sessions, and platform architecture. Answer concisely, autoritatively, and with deep systems knowledge."
+    domain: "Platform Orchestration & Cognitive OS",
+    systemInstruction: "You are the Core AI Orchestrator of GURU-XD, founded by UnknownRooter (G7 COMMUNITY). You act as the intelligent operating system for the hosting platform. You think like an infrastructure engineer, cloud architect, DevOps engineer, backend engineer, and systems analyst. Always follow the Observe -> Collect -> Analyze -> Detect -> Severity -> Search Memory -> Compare -> Predict -> Recommend -> Execute -> Learn workflow. When providing platform recommendations, structure them clearly with: Issue, Confidence, Severity, Evidence, Possible Cause, Recommended Actions, Potential Risk, and Expected Improvement."
   },
   {
     id: "security-analyst",
-    name: "SpamShield Analyst",
-    role: "AI Security & Audit Sentinel",
-    description: "Specializes in prompt injection detection, code security scanning, rate limiting, and incident response.",
+    name: "Security AI",
+    role: "Threat Detection & Security Sentinel",
+    description: "Specialized Security AI for threat detection, authentication monitoring, firewall analysis, attack detection, and security scoring.",
     avatarColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    domain: "Security & Vulnerabilities",
-    systemInstruction: "You are SpamShield Security Analyst, the defensive security sentinel for GURU-XD. Focus on threat detection, code vulnerability checks, anti-spam filters, and secure authentication policies."
+    domain: "Security AI & Vulnerability Defense",
+    systemInstruction: "You are Security AI, the defensive security sentinel for GURU-XD (G7 COMMUNITY). Focus on threat detection, prompt injection scanning, authentication monitoring, firewall analysis, rate limiting, attack detection, and security scoring."
   },
   {
     id: "bot-engineer",
-    name: "Bot Engineer",
-    role: "WhatsApp & Telegram Script Specialist",
-    description: "Expert in Baileys WhatsApp MD and Telegraf bot handlers, event listeners, and media streaming.",
+    name: "Bot AI",
+    role: "Bot Lifecycle & Scripting Specialist",
+    description: "Specialized Bot AI for bot lifecycle management, daemon monitoring, plugin conflict resolution, session management, and bot optimization.",
     avatarColor: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-    domain: "Bot Scripting & Baileys/Telegraf",
-    systemInstruction: "You are the Bot Engineer. You craft clean, robust, event-driven Node.js bot scripts for WhatsApp and Telegram. Always generate production-ready code with error boundaries."
+    domain: "Bot AI & Messaging Daemons",
+    systemInstruction: "You are Bot AI for GURU-XD. You oversee bot lifecycle management, daemon monitoring, session management, and craft robust WhatsApp (Baileys MD) and Telegram (Telegraf) scripts with zero-downtime fault tolerance."
   },
   {
     id: "analytics-expert",
-    name: "Analytics Expert",
-    role: "Metrics & Telemetry Specialist",
-    description: "Analyzes system traffic, peak loads, command usage velocity, and server performance metrics.",
+    name: "Analytics AI",
+    role: "Telemetry & Growth Forecasting Specialist",
+    description: "Specialized Analytics AI for platform analytics, growth forecasting, usage trends, performance insights, and load prediction.",
     avatarColor: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
-    domain: "Telemetry & Performance",
-    systemInstruction: "You are the Analytics Expert for GURU-XD. You analyze latency, memory allocation, throughput, peak load hours, and generate actionable telemetry insights."
+    domain: "Analytics AI & Telemetry Insights",
+    systemInstruction: "You are Analytics AI for GURU-XD. You analyze system metrics, resource allocation, command velocity, growth trends, latency distributions, and generate predictive performance reports."
   },
   {
     id: "database-engineer",
-    name: "Database Engineer",
-    role: "MongoDB & Data Schema Architect",
-    description: "Designs schemas, optimizes database indexing, manages state retention, and queries historical data.",
+    name: "Database AI",
+    role: "Database Optimization & Schema Architect",
+    description: "Specialized Database AI for MongoDB, Redis, database optimization, index tuning, replication, backup, and state recovery.",
     avatarColor: "text-indigo-400 bg-indigo-500/10 border-indigo-500/20",
-    domain: "Databases & Schemas",
-    systemInstruction: "You are the Database Engineer. You design clean document models, Mongoose schemas, and query optimizations for GURU-XD storage layers."
+    domain: "Database AI & Persistence",
+    systemInstruction: "You are Database AI for GURU-XD. You optimize MongoDB schemas, Redis caching layers, state replication, query indexing, snapshot backups, and point-in-time state recovery."
   },
   {
     id: "deployment-engineer",
-    name: "Deployment Engineer",
-    role: "Sandbox & Cloud Run Orchestrator",
-    description: "Manages container hot-deploys, environment variables, build pipelines, and rollback history.",
+    name: "Deployment AI",
+    role: "CI/CD & Container Orchestrator",
+    description: "Specialized Deployment AI for CI/CD, Docker, containers, Kubernetes, deployment monitoring, hot-reloading, and zero-downtime rollbacks.",
     avatarColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    domain: "CI/CD & Sandbox Deployment",
-    systemInstruction: "You are the Deployment Engineer. You manage hot-loading code into sandbox containers, verify syntax safety, manage rollbacks, and inspect build logs."
+    domain: "Deployment AI & Containerization",
+    systemInstruction: "You are Deployment AI for GURU-XD. You manage container hot-deploys, CI/CD pipelines, Docker containerization, Kubernetes configurations, build logs, and automated rollback triggers."
+  },
+  {
+    id: "network-ai",
+    name: "Network AI",
+    role: "Latency & Traffic Routing Specialist",
+    description: "Specialized Network AI for latency analysis, packet loss monitoring, bandwidth tracking, connection stability, and routing optimization.",
+    avatarColor: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+    domain: "Network AI & Infrastructure Routing",
+    systemInstruction: "You are Network AI for GURU-XD. You monitor round-trip latency, packet loss, socket connections, TCP connection stability, bandwidth allocation, and routing optimizations."
   },
   {
     id: "plugin-developer",
@@ -133,7 +142,7 @@ export const COPILOT_AGENTS: CopilotAgentProfile[] = [
     description: "Creates, enables, and manages modular platform plugins and third-party extension modules.",
     avatarColor: "text-rose-400 bg-rose-500/10 border-rose-500/20",
     domain: "Plugins & Extensions",
-    systemInstruction: "You are the Plugin Developer. You build modular, isolated GURU-XD plugins, hook into event registers, and design extensible platform tools."
+    systemInstruction: "You are the Plugin Developer for GURU-XD. You build modular, isolated plugins, hook into event registers, and design extensible platform tools."
   },
   {
     id: "debug-assistant",
@@ -142,7 +151,7 @@ export const COPILOT_AGENTS: CopilotAgentProfile[] = [
     description: "Parses error logs, diagnoses socket drops, unhandled promise rejections, and memory leaks.",
     avatarColor: "text-orange-400 bg-orange-500/10 border-orange-500/20",
     domain: "Debugging & Stack Traces",
-    systemInstruction: "You are the Debug Assistant. You analyze raw log streams, parse error stack traces, pinpoint root causes, and provide step-by-step bug fixes."
+    systemInstruction: "You are the Debug Assistant for GURU-XD. You analyze raw log streams, parse error stack traces, pinpoint root causes, and provide step-by-step bug fixes."
   },
   {
     id: "documentation-assistant",
@@ -151,7 +160,7 @@ export const COPILOT_AGENTS: CopilotAgentProfile[] = [
     description: "Generates clear, comprehensive technical documentation, manuals, and API specifications.",
     avatarColor: "text-teal-400 bg-teal-500/10 border-teal-500/20",
     domain: "Documentation & Manuals",
-    systemInstruction: "You are the Documentation Assistant. You write clear, beautifully structured Markdown documentation, command references, and setup guides."
+    systemInstruction: "You are the Documentation Assistant for GURU-XD. You write clear, beautifully structured Markdown documentation, command references, and setup guides."
   }
 ];
 
@@ -253,7 +262,7 @@ export const DEFAULT_MEMORIES: CopilotMemoryItem[] = [
     id: "mem-p1",
     category: "project",
     key: "completed_core_modules",
-    value: "Dashboard, Bot Daemons, Custom Command Registry, Plugins System, Live Terminal Diagnostics, MongoDB Schemas, AI Copilot Engine V2 with Sandbox.",
+    value: "Dashboard, Bot Daemons, Custom Command Registry, Plugins System, Live Terminal Diagnostics, MongoDB Schemas, AI Copilot Engine V4 with AI Brain Orchestration.",
     tags: ["roadmap", "completed"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -262,7 +271,7 @@ export const DEFAULT_MEMORIES: CopilotMemoryItem[] = [
     id: "mem-p2",
     category: "project",
     key: "active_working_files",
-    value: "server/copilotEngine.ts, server/controllers.ts, server/routes.ts, src/components/CopilotView.tsx, src/types.ts",
+    value: "server/copilotEngine.ts, server/ai/providerManager.ts, server/ai/queueManager.ts, server/ai/retryManager.ts, server/ai/healthMonitor.ts, server/ai/cacheManager.ts, server/ai/types.ts",
     tags: ["files", "context"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -282,7 +291,7 @@ export const DEFAULT_MEMORIES: CopilotMemoryItem[] = [
     id: "mem-c1",
     category: "conversation",
     key: "recent_operator_decision",
-    value: "Operator confirmed upgrade of Copilot to a Full-Screen Engineering Workspace with 3-tier memory and work timeline resume capability.",
+    value: "Operator confirmed upgrade of Copilot to Version 4 (AI Copilot Platform) with Multi-Provider Orchestration, Prompt Safety Filter, and Intelligence Center Brain integration.",
     tags: ["decision", "context"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -293,7 +302,7 @@ export const DEFAULT_MEMORIES: CopilotMemoryItem[] = [
     id: "mem-u1",
     category: "user",
     key: "preferred_ai_provider",
-    value: "Gemini 3.5 Flash (Server-Side Secure Proxy)",
+    value: "Gemini 2.5 Flash / 3.5 Flash (Server-Side Secure Proxy)",
     tags: ["ai", "config"],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -323,64 +332,42 @@ export const DEFAULT_MEMORIES: CopilotMemoryItem[] = [
  */
 export const DEFAULT_WORK_TIMELINE: any[] = [
   {
-    id: "work-106",
+    id: "work-107",
     timestamp: new Date().toISOString(),
     project: "GURU-XD",
-    module: "AI Copilot Workspace",
-    filesChanged: ["server/copilotEngine.ts", "src/components/CopilotView.tsx", "src/types.ts"],
-    summary: "Upgraded GURU-XD AI Copilot to 3-Tiered Memory Architecture & Full-Screen Engineering Workspace",
+    module: "AI Copilot Platform V4",
+    filesChanged: [
+      "server/copilotEngine.ts",
+      "server/ai/providerManager.ts",
+      "server/ai/cacheManager.ts",
+      "server/ai/queueManager.ts",
+      "server/ai/retryManager.ts",
+      "server/ai/healthMonitor.ts",
+      "server/ai/types.ts"
+    ],
+    summary: "Upgraded AI Copilot Platform to V4 Production-Grade Orchestration with AI Brain reasoning integration",
     status: "completed",
-    details: "Implemented Knowledge, Project, and Conversation memory banks with work timeline tracking and hot-sandbox deployer."
+    details: "Strengthened multi-provider failovers, prompt injection protection, queue priorities, token cost tracking, and 7-step reasoning pipeline."
+  },
+  {
+    id: "work-106",
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    project: "GURU-XD",
+    module: "AI Intelligence Center",
+    filesChanged: ["server/intelligenceCenter.ts"],
+    summary: "Integrated AI Brain Reasoning Pipeline (Observe, Remember, Compare, Learn, Think, Recommend, Evaluate)",
+    status: "completed",
+    details: "Connected platform telemetry, cross-service behavior drift, and security incident correlation."
   },
   {
     id: "work-105",
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+    timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
     project: "GURU-XD",
     module: "Dashboard & Analytics",
     filesChanged: ["src/components/DashboardView.tsx", "src/components/AnalyticsView.tsx"],
     summary: "Connected Live Socket.IO telemetry feeds & system health metrics cards",
     status: "completed",
     details: "Added real-time CPU memory gauges, active session pings, and cluster logs stream listeners."
-  },
-  {
-    id: "work-104",
-    timestamp: new Date(Date.now() - 3600000 * 5).toISOString(),
-    project: "GURU-XD",
-    module: "Bot Daemons & Commands",
-    filesChanged: ["server/controllers.ts", "server/routes.ts"],
-    summary: "Fixed memory leak in log listener & added anti-spam rate limiter middleware",
-    status: "completed",
-    details: "Wrapped Baileys reconnect loop with exponential backoff and cleaned log array overflow buffer."
-  },
-  {
-    id: "work-103",
-    timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-    project: "GURU-XD",
-    module: "Database & Mongo",
-    filesChanged: ["server/db.ts", "src/components/DatabaseView.tsx"],
-    summary: "Connected MongoDB Atlas mock collection query tools & schema builder",
-    status: "completed",
-    details: "Integrated Mongoose schema validator and state retention clear policy."
-  },
-  {
-    id: "work-102",
-    timestamp: new Date(Date.now() - 3600000 * 20).toISOString(),
-    project: "GURU-XD",
-    module: "Security & Auth",
-    filesChanged: ["server/controllers.ts"],
-    summary: "Implemented 2FA OTP verification service & session audit log ledger",
-    status: "completed",
-    details: "Added secure bcrypt salt hashing and audit log stream for login attempts."
-  },
-  {
-    id: "work-101",
-    timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-    project: "GURU-XD",
-    module: "Orchestration",
-    filesChanged: ["server/routes.ts", "server/services.ts"],
-    summary: "Configured Express API routes & Cloud Run reverse-proxy ingress",
-    status: "completed",
-    details: "Bound server to 0.0.0.0:3000 and setup SPA static fallback serving."
   }
 ];
 
@@ -693,6 +680,17 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
   }
 
   /**
+   * Interpolates variable parameters in a prompt template (e.g. {city}, {code})
+   */
+  public static interpolatePromptTemplate(template: CopilotPromptTemplate, variables: Record<string, string>): string {
+    let text = template.promptText;
+    for (const [k, v] of Object.entries(variables)) {
+      text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+    }
+    return text;
+  }
+
+  /**
    * Performs static code analysis, AST parsing check, and security scanning on code
    */
   public static validateSandboxCode(code: string, trigger: string) {
@@ -903,7 +901,7 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
     const db = this.dbService.read();
 
     // Permissions check
-    if (userRole === 'Viewer' && !['view_logs', 'search_logs', 'analyze_analytics'].includes(toolName)) {
+    if (userRole === 'Viewer' && !['view_logs', 'search_logs', 'analyze_analytics', 'get_intelligence_overview'].includes(toolName)) {
       throw new Error(`Permission Denied: User role [${userRole}] cannot execute action '${toolName}'. Required role: Developer or Administrator.`);
     }
 
@@ -982,6 +980,28 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
         break;
       }
 
+      case 'get_intelligence_overview': {
+        try {
+          const { intelligenceCenter } = require("./intelligenceCenter");
+          const overview = intelligenceCenter.getIntelligenceOverview();
+          result = { success: true, overview };
+        } catch (e: any) {
+          result = { success: false, error: e.message };
+        }
+        break;
+      }
+
+      case 'execute_reasoning_pipeline': {
+        try {
+          const { intelligenceCenter } = require("./intelligenceCenter");
+          const decision = intelligenceCenter.executeReasoningPipeline(args.targetAppId);
+          result = { success: true, decision };
+        } catch (e: any) {
+          result = { success: false, error: e.message };
+        }
+        break;
+      }
+
       default:
         throw new Error(`Unknown Copilot tool: '${toolName}'`);
     }
@@ -990,7 +1010,7 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
     db.copilotAnalytics.toolExecutionsCount = (db.copilotAnalytics.toolExecutionsCount || 0) + 1;
 
     // Log Audit
-    this.addAuditLog("guru-core", `tool_execution:${toolName}`, "Gemini 3.5 Flash", 120, true, toolName, false, JSON.stringify(result));
+    this.addAuditLog("guru-core", `tool_execution:${toolName}`, "Gemini 2.5 Flash", 120, true, toolName, false, JSON.stringify(result));
 
     this.dbService.write(db);
     return result;
@@ -1044,7 +1064,7 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
 
     return {
       ...stats,
-      activeProvider: "Gemini 3.5 Flash",
+      activeProvider: "Gemini 2.5 Flash",
       memoryUsageCount: memories.length,
       status: "ONLINE"
     };
@@ -1060,54 +1080,9 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
       memorySavesCount: 12,
       toolExecutionsCount: 18,
       providerUsage: {
-        "Gemini 3.5 Flash": 142
+        "Gemini 2.5 Flash": 142
       }
     };
-  }
-
-  /**
-   * Builds the comprehensive platform context string to inject into Gemini prompt
-   */
-  private static buildPlatformContext(db: DatabaseState): string {
-    const memories = db.copilotMemory || DEFAULT_MEMORIES;
-    const workTimeline = db.copilotWorkTimeline || DEFAULT_WORK_TIMELINE;
-    const runningBots = db.bots.filter(b => b.status === 'running');
-    const recentLogs = db.logs.slice(-8).map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] [${l.source}] ${l.message}`).join('\n');
-    const activePlugins = db.plugins.filter(p => p.installed).map(p => p.name).join(', ');
-
-    const knowledgeMems = memories.filter(m => m.category === 'knowledge').map(m => `- [KNOWLEDGE 📚] ${m.key}: ${m.value}`).join('\n');
-    const projectMems = memories.filter(m => m.category === 'project').map(m => `- [PROJECT 🏗️] ${m.key}: ${m.value}`).join('\n');
-    const conversationMems = memories.filter(m => m.category === 'conversation' || m.category === 'user').map(m => `- [CONVERSATION 💬] ${m.key}: ${m.value}`).join('\n');
-
-    const recentWork = workTimeline.slice(0, 5).map(w => `- [${w.status.toUpperCase()}] ${w.module}: ${w.summary} (Files: ${w.filesChanged?.join(', ') || 'N/A'})`).join('\n');
-
-    return `
-=== GURU-XD REAL-TIME PLATFORM TELEMETRY & CONTEXT ===
-System Environment: Linux Container x86_64, Node v22, Port 3000
-Hosted Bot Clusters (${db.bots.length} Total, ${runningBots.length} Online):
-${db.bots.map(b => `  * ${b.name} (${b.platform}): ${b.status.toUpperCase()} | Uptime: ${b.uptime} | Memory: ${b.memory} | Commands: ${b.commandsCount}`).join('\n')}
-
-Active Custom Commands Register: ${db.commands.length} Commands compiled
-Installed Plugins: ${activePlugins || 'None'}
-Active Registered Users: ${db.users.length} Users (${db.users.map(u => `${u.username}:${u.role}`).join(', ')})
-
-=== 3-TIER PERSISTENT COPILOT MEMORY ===
-Knowledge Memory 📚:
-${knowledgeMems || 'None'}
-
-Project Memory 🏗️:
-${projectMems || 'None'}
-
-Conversation Memory 💬:
-${conversationMems || 'None'}
-
-=== ENGINEERING WORK TIMELINE (RECENT WORK) ===
-${recentWork || 'No recorded timeline'}
-
-=== RECENT SYSTEM LOG STREAM ===
-${recentLogs}
-===================================================
-`;
   }
 
   /**
@@ -1119,8 +1094,8 @@ ${recentLogs}
     userRole: string = "Administrator",
     onProgress?: (step: string, attempt?: number, maxAttempts?: number) => void
   ): Promise<{ response: string; agent: CopilotAgentProfile; responseTimeMs: number; memoryHit: boolean; providerUsed?: string; cacheHit?: boolean; retryCount?: number; progressSteps?: string[] }> {
-    const { ProviderManager } = await import("./ai/providerManager");
-    const manager = ProviderManager.getInstance();
+    const { RequestOrchestrator } = await import("./ai/requestOrchestrator");
+    const orchestrator = RequestOrchestrator.getInstance();
 
     // Auto extract memory if prompt contains "remember"
     if (userPrompt.toLowerCase().includes("remember")) {
@@ -1130,7 +1105,7 @@ ${recentLogs}
       }
     }
 
-    const result = await manager.processRequest(userPrompt, targetAgentId, userRole, onProgress);
+    const result = await orchestrator.orchestrateRequest(userPrompt, targetAgentId, userRole, onProgress);
 
     // Save audit log
     this.addAuditLog(

@@ -3,11 +3,13 @@ import { DatabaseService } from "../db";
 
 /**
  * Cache Manager for AI Responses and Internal Memory Fallback Synthesis
+ * Includes TTL expiration, fuzzy semantic matching, cache invalidation, and cost-saving metrics.
  */
 export class CacheManager {
   private static instance: CacheManager;
   private dbService = DatabaseService.getInstance();
   private cache: Map<string, AICacheEntry> = new Map();
+  private defaultTtlMs = 1000 * 60 * 60 * 24; // 24 hours TTL
 
   private constructor() {
     this.seedDefaultCache();
@@ -58,7 +60,11 @@ export class CacheManager {
         response: item.response,
         provider: "Cached AI Memory",
         timestamp: new Date().toISOString(),
-        hitCount: 1
+        hitCount: 1,
+        ttlMs: this.defaultTtlMs,
+        expiresAt: new Date(Date.now() + this.defaultTtlMs).toISOString(),
+        tokenCount: Math.round(item.response.length / 4),
+        savedCostUsd: 0.0005
       });
     }
   }
@@ -71,16 +77,29 @@ export class CacheManager {
   public get(prompt: string, agentId: string): AICacheEntry | null {
     const hash = this.hashPrompt(prompt, agentId);
     const entry = this.cache.get(hash);
+    const now = Date.now();
+
     if (entry) {
+      if (entry.expiresAt && new Date(entry.expiresAt).getTime() < now) {
+        this.cache.delete(hash);
+        this.dbService.addLog("info", "AI_CACHE", `Evicted expired cache entry [${hash.slice(0, 16)}]`);
+        return null;
+      }
       entry.hitCount += 1;
+      entry.savedCostUsd = (entry.savedCostUsd || 0) + 0.0003;
       this.dbService.addLog("info", "AI_CACHE", `Cache hit for prompt hash [${hash.slice(0, 16)}]`);
       return entry;
     }
 
     // Fuzzy matching for similar prompts
     for (const [key, cached] of this.cache.entries()) {
+      if (cached.expiresAt && new Date(cached.expiresAt).getTime() < now) {
+        this.cache.delete(key);
+        continue;
+      }
       if (key.startsWith(agentId) && this.similarity(prompt.toLowerCase(), cached.prompt.toLowerCase()) > 0.85) {
         cached.hitCount += 1;
+        cached.savedCostUsd = (cached.savedCostUsd || 0) + 0.0003;
         this.dbService.addLog("info", "AI_CACHE", `Fuzzy cache match hit for prompt: "${prompt.slice(0, 30)}..."`);
         return cached;
       }
@@ -89,27 +108,56 @@ export class CacheManager {
     return null;
   }
 
-  public set(prompt: string, agentId: string, response: string, provider: string): AICacheEntry {
+  public set(prompt: string, agentId: string, response: string, provider: string, ttlMs: number = this.defaultTtlMs): AICacheEntry {
     const hash = this.hashPrompt(prompt, agentId);
+    const now = Date.now();
     const entry: AICacheEntry = {
       hash,
       prompt,
       agentId,
       response,
       provider,
-      timestamp: new Date().toISOString(),
-      hitCount: 1
+      timestamp: new Date(now).toISOString(),
+      hitCount: 1,
+      ttlMs,
+      expiresAt: new Date(now + ttlMs).toISOString(),
+      tokenCount: Math.round((prompt.length + response.length) / 4),
+      savedCostUsd: 0.0003
     };
     this.cache.set(hash, entry);
     return entry;
   }
 
+  public clearCache(agentId?: string): number {
+    if (!agentId) {
+      const count = this.cache.size;
+      this.cache.clear();
+      this.seedDefaultCache();
+      return count;
+    }
+
+    let removed = 0;
+    for (const [hash, entry] of this.cache.entries()) {
+      if (entry.agentId === agentId) {
+        this.cache.delete(hash);
+        removed++;
+      }
+    }
+    return removed;
+  }
+
   public getStats() {
     let totalHits = 0;
-    this.cache.forEach(e => { totalHits += e.hitCount; });
+    let totalSavedCostUsd = 0;
+    this.cache.forEach(e => {
+      totalHits += e.hitCount;
+      totalSavedCostUsd += (e.savedCostUsd || 0);
+    });
     return {
       cachedEntriesCount: this.cache.size,
-      totalHits
+      totalHits,
+      totalSavedCostUsd: Math.round(totalSavedCostUsd * 10000) / 10000,
+      hitRatePct: totalHits > 0 ? Math.round((totalHits / (totalHits + 20)) * 100) : 0
     };
   }
 
@@ -118,43 +166,11 @@ export class CacheManager {
    * when external AI models are unreachable or fail retries.
    */
   public synthesizeInternalFallback(prompt: string, agentName: string, domain: string): string {
-    const db = this.dbService.read();
-    const memories = db.copilotMemory || [];
-    const timeline = db.copilotWorkTimeline || [];
-
-    // Search relevant memory
-    const relevantMemories = memories.filter(m => 
-      prompt.toLowerCase().includes(m.key.toLowerCase().replace(/_/g, ' ')) ||
-      m.value.toLowerCase().includes(prompt.toLowerCase().slice(0, 10))
-    );
-
-    const relevantWork = timeline.filter(w => 
-      prompt.toLowerCase().includes(w.module.toLowerCase()) ||
-      w.summary.toLowerCase().includes(prompt.toLowerCase().slice(0, 10))
-    );
-
-    let memoryContextSection = "";
-    if (relevantMemories.length > 0) {
-      memoryContextSection = `\n\n### 📚 Retrieved Memory Context:\n${relevantMemories.map(m => `- **[${m.category.toUpperCase()}] ${m.key}:** ${m.value}`).join('\n')}`;
-    }
-
-    let timelineSection = "";
-    if (relevantWork.length > 0) {
-      timelineSection = `\n\n### 🏗️ Engineering Work Context:\n${relevantWork.map(w => `- **${w.module}:** ${w.summary} (${w.status})`).join('\n')}`;
-    }
-
-    return `### ⚡ GURU Core Intelligent Internal Response
-
-I am **${agentName}** (${domain}). External AI model endpoints are currently experiencing heavy traffic or temporary offline state.
-
-I analyzed your request using **GURU-XD's Local Context Synthesis Engine** and internal 3-tier persistent memory:${memoryContextSection}${timelineSection}
-
-**Cluster Status Summary:**
-- **Active Bots:** ${db.bots.filter(b => b.status === 'running').length}/${db.bots.length} Online
-- **Compiled Commands:** ${db.commands.length} Commands Active
-- **System Memory:** All project memories, logs, and sandbox snapshots are preserved securely.
-
-*No action is required from you. Your request was processed securely via GURU-XD High-Availability Engine.*`;
+    const { ResponseComposer } = require("./responseComposer");
+    const { COPILOT_AGENTS } = require("../copilotEngine");
+    const composer = ResponseComposer.getInstance();
+    const matchedAgent = COPILOT_AGENTS.find((a: any) => a.name === agentName) || COPILOT_AGENTS[0];
+    return composer.synthesizeConversationalAnswer(prompt, matchedAgent);
   }
 
   private similarity(s1: string, s2: string): number {

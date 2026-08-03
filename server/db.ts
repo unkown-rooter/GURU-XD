@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 export interface Bot {
   id: string;
@@ -126,13 +127,49 @@ export interface DatabaseState {
   copilotSandboxHistory?: any[];
   copilotWorkTimeline?: any[];
   copilotDrafts?: any[];
+  schemaVersion?: string;
+}
+
+// ============================================================================
+// VERSION 2 EXTENDED DATABASE TELEMETRY & METRICS INTERFACES
+// ============================================================================
+
+export interface DatabaseMetrics {
+  totalReads: number;
+  totalWrites: number;
+  transactionCount: number;
+  failedWrites: number;
+  avgReadDurationMs: number;
+  avgWriteDurationMs: number;
+  cacheHits: number;
+  cacheMisses: number;
+  lastHealthCheck: string;
+  status: "healthy" | "degraded" | "reconnecting";
+}
+
+export interface DatabaseSnapshot {
+  id: string;
+  tag: string;
+  timestamp: string;
+  state: DatabaseState;
+  checksum: string;
+}
+
+export interface GenericRepository<T extends { id: string }> {
+  getAll(): T[];
+  getById(id: string): T | undefined;
+  create(item: Omit<T, "id"> & { id?: string }): T;
+  update(id: string, patch: Partial<T>): T | undefined;
+  delete(id: string): boolean;
 }
 
 const DB_PATH = path.join(process.cwd(), "database.json");
 const BACKUP_PATH = path.join(process.cwd(), "database.backup.json");
+const SNAPSHOTS_DIR = path.join(process.cwd(), "snapshots");
 
 // Define system defaults
 const DEFAULT_DATABASE: DatabaseState = {
+  schemaVersion: "2.1.0",
   bots: [
     {
       id: "bot-1",
@@ -317,6 +354,25 @@ export class DatabaseService {
   private static instance: DatabaseService;
   private state: DatabaseState | null = null;
 
+  // Version 2 Platform Extensions
+  private metrics: DatabaseMetrics = {
+    totalReads: 0,
+    totalWrites: 0,
+    transactionCount: 0,
+    failedWrites: 0,
+    avgReadDurationMs: 0.2,
+    avgWriteDurationMs: 1.5,
+    cacheHits: 0,
+    cacheMisses: 0,
+    lastHealthCheck: new Date().toISOString(),
+    status: "healthy"
+  };
+
+  private memoryCache: Map<string, { data: any; expiresAt: number }> = new Map();
+  private transactionState: DatabaseState | null = null;
+  private snapshots: Map<string, DatabaseSnapshot> = new Map();
+  private encryptionKey: string = process.env.DB_ENCRYPTION_KEY || "guru-xd-master-encryption-key-v2";
+
   private constructor() {
     this.init();
   }
@@ -348,6 +404,11 @@ export class DatabaseService {
   private validateAndEnforceDefaults() {
     if (!this.state) return;
     let modified = false;
+
+    if (!this.state.schemaVersion) {
+      this.state.schemaVersion = "2.1.0";
+      modified = true;
+    }
 
     // Deep merge verification
     if (!this.state.bots || !Array.isArray(this.state.bots)) {
@@ -441,6 +502,7 @@ export class DatabaseService {
   }
 
   public read(): DatabaseState {
+    this.metrics.totalReads += 1;
     if (!this.state) {
       this.init();
     }
@@ -448,13 +510,18 @@ export class DatabaseService {
   }
 
   public write(data: DatabaseState) {
+    const start = Date.now();
     this.state = data;
     try {
       const raw = JSON.stringify(data, null, 2);
       fs.writeFileSync(DB_PATH, raw, "utf8");
       // Silently make backup
       fs.writeFileSync(BACKUP_PATH, raw, "utf8");
+      this.metrics.totalWrites += 1;
+      const duration = Date.now() - start;
+      this.metrics.avgWriteDurationMs = (this.metrics.avgWriteDurationMs + duration) / 2;
     } catch (err) {
+      this.metrics.failedWrites += 1;
       console.error("Failed to commit database changes:", err);
     }
   }
@@ -482,7 +549,7 @@ export class DatabaseService {
             }
           }
         } catch (e) {}
-        return true; // Keep if we can't parse or if it's default initial log
+        return true;
       });
     }
 
@@ -524,5 +591,264 @@ export class DatabaseService {
     if (modified) {
       this.write(db);
     }
+  }
+
+  // ============================================================================
+  // VERSION 2 EXTENDED ENGINE PLATFORM SERVICES
+  // ============================================================================
+
+  /**
+   * Database Metrics & Connection Health Monitoring
+   */
+  public getMetrics(): DatabaseMetrics {
+    this.metrics.lastHealthCheck = new Date().toISOString();
+    return { ...this.metrics };
+  }
+
+  public checkHealth(): { healthy: boolean; status: string; latencyMs: number } {
+    const start = Date.now();
+    let healthy = true;
+    try {
+      this.read();
+    } catch (e) {
+      healthy = false;
+    }
+    const latencyMs = Date.now() - start;
+    this.metrics.status = healthy ? "healthy" : "degraded";
+    return { healthy, status: this.metrics.status, latencyMs };
+  }
+
+  public reconnect(): boolean {
+    try {
+      this.init();
+      this.metrics.status = "healthy";
+      return true;
+    } catch (e) {
+      this.metrics.status = "degraded";
+      return false;
+    }
+  }
+
+  /**
+   * In-Memory Atomic Transactions Support
+   */
+  public beginTransaction(): boolean {
+    if (this.transactionState) {
+      console.warn("[DB TRANSACTION] Transaction already in progress.");
+      return false;
+    }
+    this.transactionState = JSON.parse(JSON.stringify(this.read()));
+    this.metrics.transactionCount += 1;
+    return true;
+  }
+
+  public commitTransaction(): boolean {
+    if (!this.transactionState) {
+      console.warn("[DB TRANSACTION] No active transaction to commit.");
+      return false;
+    }
+    this.write(this.state!);
+    this.transactionState = null;
+    return true;
+  }
+
+  public rollbackTransaction(): boolean {
+    if (!this.transactionState) {
+      console.warn("[DB TRANSACTION] No active transaction to rollback.");
+      return false;
+    }
+    this.state = this.transactionState;
+    this.transactionState = null;
+    return true;
+  }
+
+  /**
+   * Repository Pattern Helper Creator
+   */
+  public getRepository<T extends { id: string }>(key: keyof DatabaseState): GenericRepository<T> {
+    const self = this;
+    return {
+      getAll(): T[] {
+        const db = self.read();
+        const arr = db[key];
+        return Array.isArray(arr) ? (arr as unknown as T[]) : [];
+      },
+      getById(id: string): T | undefined {
+        const list = this.getAll();
+        return list.find(item => item.id === id);
+      },
+      create(item: Omit<T, "id"> & { id?: string }): T {
+        const db = self.read();
+        const newItem = {
+          ...item,
+          id: item.id || `rec-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+        } as T;
+        if (!Array.isArray(db[key])) {
+          (db[key] as any) = [];
+        }
+        (db[key] as unknown as T[]).push(newItem);
+        self.write(db);
+        return newItem;
+      },
+      update(id: string, patch: Partial<T>): T | undefined {
+        const db = self.read();
+        const list = db[key];
+        if (!Array.isArray(list)) return undefined;
+        const index = (list as unknown as T[]).findIndex(item => item.id === id);
+        if (index === -1) return undefined;
+        const updated = { ...list[index], ...patch } as T;
+        (list as unknown as T[])[index] = updated;
+        self.write(db);
+        return updated;
+      },
+      delete(id: string): boolean {
+        const db = self.read();
+        const list = db[key];
+        if (!Array.isArray(list)) return false;
+        const initialLen = list.length;
+        (db[key] as any) = (list as unknown as T[]).filter(item => item.id !== id);
+        const deleted = (db[key] as any).length < initialLen;
+        if (deleted) self.write(db);
+        return deleted;
+      }
+    };
+  }
+
+  /**
+   * Cache Integration Hooks
+   */
+  public getCached<T>(key: string): T | null {
+    const record = this.memoryCache.get(key);
+    if (!record) {
+      this.metrics.cacheMisses += 1;
+      return null;
+    }
+    if (Date.now() > record.expiresAt) {
+      this.memoryCache.delete(key);
+      this.metrics.cacheMisses += 1;
+      return null;
+    }
+    this.metrics.cacheHits += 1;
+    return record.data as T;
+  }
+
+  public setCached(key: string, data: any, ttlMs: number = 60000): void {
+    this.memoryCache.set(key, {
+      data,
+      expiresAt: Date.now() + ttlMs
+    });
+  }
+
+  public invalidateCache(key?: string): void {
+    if (key) {
+      this.memoryCache.delete(key);
+    } else {
+      this.memoryCache.clear();
+    }
+  }
+
+  /**
+   * Backup Preparation & Restore Operations
+   */
+  public createSnapshot(tag: string = "manual"): DatabaseSnapshot {
+    const currentState = JSON.parse(JSON.stringify(this.read()));
+    const raw = JSON.stringify(currentState);
+    const checksum = crypto.createHash("sha256").update(raw).digest("hex");
+    const snapshot: DatabaseSnapshot = {
+      id: `snap-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      tag,
+      timestamp: new Date().toISOString(),
+      state: currentState,
+      checksum
+    };
+    this.snapshots.set(snapshot.id, snapshot);
+
+    try {
+      if (!fs.existsSync(SNAPSHOTS_DIR)) {
+        fs.mkdirSync(SNAPSHOTS_DIR, { recursive: true });
+      }
+      fs.writeFileSync(path.join(SNAPSHOTS_DIR, `${snapshot.id}.json`), raw, "utf8");
+    } catch (e) {
+      console.warn("Could not save snapshot file to disk:", e);
+    }
+
+    return snapshot;
+  }
+
+  public restoreFromSnapshot(snapshotId: string): boolean {
+    const snapshot = this.snapshots.get(snapshotId);
+    if (!snapshot) {
+      const snapPath = path.join(SNAPSHOTS_DIR, `${snapshotId}.json`);
+      if (fs.existsSync(snapPath)) {
+        try {
+          const raw = fs.readFileSync(snapPath, "utf8");
+          const state = JSON.parse(raw);
+          this.write(state);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+      return false;
+    }
+    this.write(snapshot.state);
+    return true;
+  }
+
+  public listSnapshots(): Omit<DatabaseSnapshot, "state">[] {
+    return Array.from(this.snapshots.values()).map(({ id, tag, timestamp, checksum }) => ({
+      id,
+      tag,
+      timestamp,
+      checksum
+    }));
+  }
+
+  /**
+   * Field Encryption Hooks
+   */
+  public encryptSensitiveField(value: string): string {
+    try {
+      const cipher = crypto.createCipheriv("aes-256-cbc", crypto.scryptSync(this.encryptionKey, "salt", 32), Buffer.alloc(16, 0));
+      let encrypted = cipher.update(value, "utf8", "hex");
+      encrypted += cipher.final("hex");
+      return `enc:${encrypted}`;
+    } catch (e) {
+      return `enc:${Buffer.from(value).toString("base64")}`;
+    }
+  }
+
+  public decryptSensitiveField(encryptedValue: string): string {
+    if (!encryptedValue.startsWith("enc:")) return encryptedValue;
+    const raw = encryptedValue.substring(4);
+    try {
+      const decipher = crypto.createDecipheriv("aes-256-cbc", crypto.scryptSync(this.encryptionKey, "salt", 32), Buffer.alloc(16, 0));
+      let decrypted = decipher.update(raw, "hex", "utf8");
+      decrypted += decipher.final("utf8");
+      return decrypted;
+    } catch (e) {
+      return Buffer.from(raw, "base64").toString("utf8");
+    }
+  }
+
+  /**
+   * Multi-tenant & AI Vector Readiness Hooks
+   */
+  public storeAIMemory(key: string, memoryItem: any): void {
+    const db = this.read();
+    if (!db.copilotMemory) db.copilotMemory = [];
+    db.copilotMemory.push({
+      id: `mem-${Date.now()}`,
+      key,
+      content: memoryItem,
+      createdAt: new Date().toISOString()
+    });
+    this.write(db);
+  }
+
+  public queryAIMemory(key: string): any[] {
+    const db = this.read();
+    if (!db.copilotMemory) return [];
+    return db.copilotMemory.filter((m: any) => m.key?.includes(key) || m.content?.includes?.(key));
   }
 }
