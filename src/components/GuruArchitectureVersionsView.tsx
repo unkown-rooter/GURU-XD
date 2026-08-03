@@ -77,7 +77,7 @@ export interface WorkflowLog {
 }
 
 export default function GuruArchitectureVersionsView() {
-  const [activeTab, setActiveTab] = useState<'versions' | 'governance' | 'knowledge' | 'decision' | 'orchestration' | 'communication'>('versions');
+  const [activeTab, setActiveTab] = useState<'versions' | 'governance' | 'knowledge' | 'safety' | 'decision' | 'orchestration' | 'communication'>('versions');
   const [versions, setVersions] = useState<ArchitectureVersion[]>([]);
   const [knowledgeNodes, setKnowledgeNodes] = useState<KnowledgeNode[]>([]);
   const [decisions, setDecisions] = useState<DecisionLog[]>([]);
@@ -276,6 +276,16 @@ export default function GuruArchitectureVersionsView() {
         >
           <BookOpen className="w-4 h-4" />
           <span>Knowledge Graph (V3)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('safety')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            activeTab === 'safety' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900/60 text-slate-400 hover:bg-slate-800'
+          }`}
+        >
+          <Lock className="w-4 h-4" />
+          <span>Safety Policy (V4)</span>
         </button>
 
         <button
@@ -539,6 +549,199 @@ export default function GuruArchitectureVersionsView() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3.5: SAFETY POLICY (VERSION 4.0) */}
+      {activeTab === 'safety' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/* Four Core Directives */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-xl">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                <Search className="w-4 h-4 shrink-0" />
+                <span>1. Mandatory Code Inspection</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Existing files must be inspected before any modification or generation. No blind overwrites allowed.
+              </p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-xl">
+              <div className="flex items-center gap-2 text-blue-400 font-bold text-xs">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>2. Anti-Duplication Directive</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                "Prefer Improve, Extend, Refactor over Rebuild, Replace, Duplicate." Existing functions are updated, never duplicated.
+              </p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-xl">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>3. Architecture Impact Report</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Implementation requests produce an Impact Analysis Report requiring explicit operator approval prior to execution.
+              </p>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2 shadow-xl">
+              <div className="flex items-center gap-2 text-purple-400 font-bold text-xs">
+                <Lock className="w-4 h-4 shrink-0" />
+                <span>4. Immutable Version History</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Previous architecture versions (V0 - V7) are permanent records. New features extend history without rewriting.
+              </p>
+            </div>
+          </div>
+
+          {/* Interactive Safety Checker Simulator */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <Lock className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">Code Integrity & Safety Check Simulator</h3>
+                  <span className="text-[10px] font-mono text-slate-500">Test user commands against Version 4 Safety Policy rules</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleRunSafetyCheck} className="space-y-3 text-xs">
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">Command / Action String:</label>
+                  <input
+                    type="text"
+                    value={commandInput}
+                    onChange={(e) => setCommandInput(e.target.value)}
+                    placeholder="e.g., implement new bot adapter route or refactor server/controllers.ts"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 font-mono block mb-1">Target File Path (Optional):</label>
+                  <input
+                    type="text"
+                    value={targetPathInput}
+                    onChange={(e) => setTargetPathInput(e.target.value)}
+                    placeholder="e.g., /server/routes.ts or /server/controllers.ts"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer font-mono"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Execute Version 4 Safety Check</span>
+                </button>
+              </form>
+
+              {safetyCheckResult && (
+                <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 space-y-3 text-xs font-mono animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-slate-400">Safety Verdict:</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase">
+                      {safetyCheckResult.safetyPassed ? 'PASSED (SAFE)' : 'BLOCKED (POLICY VIOLATION)'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-slate-500 block">Intent Category:</span>
+                      <span className="text-blue-400 font-bold">{safetyCheckResult.classification?.intent}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block">Risk Assessment:</span>
+                      <span className="text-amber-400 font-bold">SCORE {safetyCheckResult.classification?.riskScore} / 100</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-slate-500 block">Directive Guidance:</span>
+                    <span className="text-slate-300 block bg-slate-900 p-2 rounded border border-slate-800 text-[11px]">
+                      {safetyCheckResult.existingCodeProtection?.directive}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-slate-500">Operator Approval Required:</span>
+                    <span className={`font-bold ${safetyCheckResult.approvalRequired ? 'text-amber-400' : 'text-slate-400'}`}>
+                      {safetyCheckResult.approvalRequired ? 'YES (APPROVAL GATEWAY ACTIVE)' : 'NO (AUTO-ALLOWED)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Protected Core Systems Matrix */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-5 h-5 text-blue-400" />
+                  <h3 className="text-sm font-bold text-white">Protected Platform Architecture Files</h3>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">
+                  100% PROTECTED
+                </span>
+              </div>
+
+              <div className="space-y-2.5 text-xs font-mono">
+                {[
+                  { file: '/server/routes.ts', scope: 'API Endpoint Router', status: 'Additive Only', icon: GitCommit },
+                  { file: '/server/controllers.ts', scope: 'Business Logic Controllers', status: 'Non-Breaking Refactor', icon: Zap },
+                  { file: '/server/db.ts', scope: 'In-Memory Telemetry & Persistence Engine', status: 'Schema Safe', icon: Database },
+                  { file: '/server/engineeringGovernanceEngine.ts', scope: 'V0-V7 Specifications Registry', status: 'Immutable Specs', icon: Lock },
+                  { file: '/src/App.tsx', scope: 'React App Root Orchestrator', status: 'Preserved Mounting', icon: Layers }
+                ].map((item, idx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={idx} className="bg-slate-950 border border-slate-850 p-3 rounded-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon className="w-4 h-4 text-blue-400 shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-slate-200 font-bold block truncate">{item.file}</span>
+                          <span className="text-[10px] text-slate-500 truncate block">{item.scope}</span>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 text-[10px] shrink-0">
+                        {item.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Logs Section */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-xl">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <History className="w-4 h-4 text-purple-400" />
+              <span>Governance & Safety Policy Audit Logs ({auditLogs.length})</span>
+            </h3>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {auditLogs.map((log) => (
+                <div key={log.id} className="bg-slate-950 border border-slate-850 rounded-xl p-3 flex items-center justify-between gap-4 text-xs font-mono">
+                  <div className="min-w-0 space-y-0.5">
+                    <span className="text-slate-200 font-bold block truncate">{log.command}</span>
+                    <span className="text-[10px] text-slate-500 block">{log.details}</span>
+                  </div>
+                  <div className="text-right shrink-0 space-y-0.5">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 block">
+                      INTENT: {log.intent}
+                    </span>
+                    <span className="text-[9px] text-slate-500 block">{log.timestamp}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

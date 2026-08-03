@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { DatabaseService, Bot } from './db';
+import { AppEventBus } from './services/eventBus';
 
 // ----------------------------------------------------
 // TYPES & INTERFACES FOR BEHAVIOR LEARNING ENGINE
@@ -300,7 +301,100 @@ class BehaviorLearningEngine {
     this.initializeDefaultInstances();
     this.initializeDefaultUserProfiles();
     this.initializeDefaultRules();
+    this.subscribeToPlatformEvents();
     this.startTelemetryLoop();
+  }
+
+  private subscribeToPlatformEvents() {
+    const eventBus = AppEventBus.getInstance();
+
+    eventBus.subscribe('bot.message.received', (evt) => {
+      const { botId, platform, content } = evt.payload || {};
+      if (!botId) return;
+
+      let profile = this.profiles.get(botId);
+      if (!profile) {
+        profile = this.registerInstance(botId, `Bot-${botId}`, platform);
+      }
+
+      profile.currentTelemetry.messagesProcessed += 1;
+      profile.currentTelemetry.messagesReceived += 1;
+      profile.currentTelemetry.apiRequestsCount += 1;
+      profile.currentTelemetry.timestamp = new Date().toISOString();
+
+      profile.timeline.unshift({
+        id: `tl-${Date.now()}-inbound`,
+        timestamp: new Date().toLocaleTimeString(),
+        event: 'Inbound Message Ingested',
+        type: 'INFO',
+        details: `Ingested inbound ${platform || 'bot'} message: "${(content || '').substring(0, 30)}..."`,
+        severity: 'Information'
+      });
+
+      emitBehaviorEvent('behavior.updated', {
+        instanceId: botId,
+        telemetry: profile.currentTelemetry,
+        scores: {
+          behaviorScorePct: profile.behaviorScorePct,
+          driftScorePct: profile.driftScorePct,
+          riskScorePct: profile.riskScorePct,
+          liveHealthScorePct: profile.liveHealthScorePct,
+          confidenceScorePct: profile.confidenceScorePct,
+          trustBadge: profile.trustBadge
+        }
+      });
+    });
+
+    eventBus.subscribe('bot.message.sent', (evt) => {
+      const { botId, platform, content } = evt.payload || {};
+      if (!botId) return;
+
+      let profile = this.profiles.get(botId);
+      if (!profile) {
+        profile = this.registerInstance(botId, `Bot-${botId}`, platform);
+      }
+
+      profile.currentTelemetry.messagesProcessed += 1;
+      profile.currentTelemetry.messagesSent += 1;
+      profile.currentTelemetry.apiRequestsCount += 1;
+      profile.currentTelemetry.timestamp = new Date().toISOString();
+
+      emitBehaviorEvent('behavior.updated', {
+        instanceId: botId,
+        telemetry: profile.currentTelemetry,
+        scores: {
+          behaviorScorePct: profile.behaviorScorePct,
+          driftScorePct: profile.driftScorePct,
+          riskScorePct: profile.riskScorePct,
+          liveHealthScorePct: profile.liveHealthScorePct,
+          confidenceScorePct: profile.confidenceScorePct,
+          trustBadge: profile.trustBadge
+        }
+      });
+    });
+
+    eventBus.subscribe('bot.status.changed', (evt) => {
+      const { botId, status, platform } = evt.payload || {};
+      if (!botId) return;
+
+      const profile = this.profiles.get(botId);
+      if (profile) {
+        profile.status = status === 'connected' ? 'running' : 'stopped';
+        profile.timeline.unshift({
+          id: `tl-${Date.now()}-status`,
+          timestamp: new Date().toLocaleTimeString(),
+          event: `Adapter Status: ${status}`,
+          type: 'SYSTEM',
+          details: `Platform adapter status transitioned to "${status}" for ${platform || 'bot'}.`,
+          severity: status === 'connected' ? 'Information' : 'Warning'
+        });
+
+        emitBehaviorEvent('behavior.updated', {
+          instanceId: botId,
+          profile
+        });
+      }
+    });
   }
 
   public static getInstance(): BehaviorLearningEngine {
@@ -606,6 +700,114 @@ class BehaviorLearningEngine {
       instanceId,
       event: 'policy_change',
       policy,
+      profile
+    });
+
+    return profile;
+  }
+
+  // Re-baseline Instance Telemetry Expectations
+  public rebaseline(instanceId: string): InstanceBehaviorProfile | undefined {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) return undefined;
+
+    const current = profile.currentTelemetry;
+    profile.baseline = {
+      registeredAt: new Date().toISOString(),
+      samplesCount: 50,
+      avgCpuUsagePct: current.cpuUsagePct,
+      avgRamUsageMb: current.ramUsageMb,
+      avgStorageUsageMb: current.storageUsageMb,
+      avgApiRequestsPerMin: Math.max(1, Math.round(current.apiRequestsCount / 10)),
+      avgMessagesPerMin: Math.max(1, Math.round(current.messagesProcessed / 60)),
+      avgMessagesPerHour: Math.max(10, current.messagesProcessed),
+      avgMessagesPerDay: current.messagesProcessed * 24,
+      avgDatabaseQueriesPerMin: Math.max(1, Math.round(current.databaseQueriesCount / 10)),
+      avgNetworkUploadKbps: current.networkUploadKbps,
+      avgNetworkDownloadKbps: current.networkDownloadKbps,
+      avgActiveUsers: current.activeUsers,
+      avgActiveGroups: current.activeGroups,
+      avgPluginUsageCount: current.activePluginsCount,
+      avgCommandUsagePerMin: Math.max(1, Math.round(current.commandsExecuted / 10)),
+      avgErrorRatePct: 0.1,
+      avgRestartFrequencyPerDay: 0,
+      avgCrashFrequencyPerDay: 0,
+      avgFileOpsPerMin: Math.max(1, current.fileOperationsCount),
+      avgWebhookRequestsPerMin: 2,
+      avgExternalApiRequestsPerMin: Math.max(1, current.apiRequestsCount),
+      isBaselineEstablished: true
+    };
+
+    profile.driftScorePct = 0;
+    profile.riskScorePct = 5;
+    profile.behaviorScorePct = 98;
+    profile.liveHealthScorePct = 99;
+    profile.confidenceScorePct = 95;
+    profile.trustBadge = '🟢 Trusted';
+    profile.alerts = [];
+
+    profile.timeline.unshift({
+      id: `tl-${Date.now()}-rebaseline`,
+      timestamp: new Date().toLocaleTimeString(),
+      event: 'Behavior Baseline Re-established',
+      type: 'SYSTEM',
+      details: 'Administrator triggered manual re-baselining. Current telemetry snapshot locked as normal operating baseline.',
+      severity: 'Information'
+    });
+
+    emitBehaviorEvent('behavior.updated', {
+      instanceId,
+      event: 'rebaseline',
+      profile
+    });
+
+    return profile;
+  }
+
+  // Override Policy with reason
+  public policyOverride(instanceId: string, policy: ProtectionPolicy, reason?: string): InstanceBehaviorProfile | undefined {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) return undefined;
+
+    profile.protectionPolicy = policy;
+    profile.timeline.unshift({
+      id: `tl-${Date.now()}-override`,
+      timestamp: new Date().toLocaleTimeString(),
+      event: 'Manual Policy Override Applied',
+      type: 'POLICY',
+      details: `Policy overridden to "${policy}". Reason: ${reason || 'Operator manual intervention'}.`,
+      severity: 'Warning'
+    });
+
+    emitBehaviorEvent('behavior.updated', {
+      instanceId,
+      event: 'policy_override',
+      policy,
+      profile
+    });
+
+    return profile;
+  }
+
+  // Toggle instance running/paused state
+  public toggleStatus(instanceId: string): InstanceBehaviorProfile | undefined {
+    const profile = this.profiles.get(instanceId);
+    if (!profile) return undefined;
+
+    profile.status = profile.status === 'running' ? 'paused' : 'running';
+    profile.timeline.unshift({
+      id: `tl-${Date.now()}-toggle`,
+      timestamp: new Date().toLocaleTimeString(),
+      event: `Instance Status Toggled`,
+      type: 'SYSTEM',
+      details: `Instance operation state toggled to "${profile.status}".`,
+      severity: profile.status === 'running' ? 'Information' : 'Warning'
+    });
+
+    emitBehaviorEvent('behavior.updated', {
+      instanceId,
+      event: 'status_toggled',
+      status: profile.status,
       profile
     });
 

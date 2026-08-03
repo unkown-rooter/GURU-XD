@@ -3,10 +3,10 @@ import { GoogleGenAI } from "@google/genai";
 
 export class GeminiAdapter extends BaseProviderAdapter {
   id = "gemini-primary";
-  name = "Google Gemini 2.5 Flash";
+  name = "Google Gemini 2.0 Flash";
   type = "gemini";
   envVar = "GEMINI_API_KEY";
-  defaultModel = "gemini-2.5-flash";
+  defaultModel = "gemini-2.0-flash";
 
   public async healthCheck(): Promise<boolean> {
     if (!this.isConfigured()) return false;

@@ -280,13 +280,13 @@ export default function Navbar({
 
   return (
     <>
-      <header className="h-16 border-b border-slate-900 bg-slate-950/40 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-10 gap-4">
+      <header className="h-16 border-b border-slate-900/80 bg-slate-950/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 gap-4">
         {/* Left Section - Quick Search Input & Mobile Trigger */}
         <div className="flex items-center gap-3 flex-1 max-w-sm">
           {onToggleMobileMenu && (
             <button
               onClick={onToggleMobileMenu}
-              className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900/30 border border-slate-900 focus:outline-none hover:bg-slate-900/60 transition-colors shrink-0 cursor-pointer"
+              className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-slate-100 bg-slate-900/60 border border-slate-800 focus:outline-none hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
               title="Toggle Menu"
             >
               <Menu className="w-4 h-4" />
@@ -300,40 +300,40 @@ export default function Navbar({
               setSearchQuery('');
               setSelectedIndex(0);
             }}
-            className="w-full flex items-center gap-2 px-3 py-1.5 bg-slate-950 border border-slate-900 hover:border-slate-850 rounded-lg text-[11px] text-slate-500 hover:text-slate-400 cursor-pointer transition-all select-none"
+            className="w-full flex items-center gap-2.5 px-3.5 py-1.5 bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 rounded-xl text-xs text-slate-400 hover:text-slate-200 cursor-pointer transition-all duration-200 select-none shadow-inner"
           >
-            <Search className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span className="flex-1 truncate">Search terminal commands...</span>
-            <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-slate-900 border border-slate-850 text-[9px] font-mono text-slate-500 shrink-0">⌘K</span>
+            <Search className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="flex-1 truncate font-medium">Search terminal commands...</span>
+            <span className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-800/90 border border-slate-700/60 text-[10px] font-mono text-slate-400 shrink-0 font-semibold">⌘K</span>
           </div>
         </div>
 
         {/* Right Section - Stats & Controllers */}
-        <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-5 shrink-0">
           {/* Live Status indicator */}
           {isFirebaseConfigured ? (
-            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono text-blue-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono text-blue-400 font-semibold tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
               <span>CLOUD SYNC ACTIVE</span>
             </div>
           ) : (
-            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-400">
-              <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-400 font-semibold tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
               <span>PORTAL ACTIVE</span>
             </div>
           )}
 
           {/* Dynamic Clock */}
-          <div className="hidden lg:flex items-center gap-2 text-slate-400 font-mono text-xs border-r border-slate-900 pr-5">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
-            <span>{time.toLocaleTimeString()}</span>
+          <div className="hidden lg:flex items-center gap-2 text-slate-300 font-mono text-xs border-r border-slate-900/80 pr-4">
+            <Clock className="w-3.5 h-3.5 text-blue-400/80" />
+            <span className="font-semibold">{time.toLocaleTimeString()}</span>
           </div>
 
           {/* Live CPU */}
           <div className="hidden sm:flex flex-col items-end">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Cluster CPU</span>
-            <div className="flex items-center gap-2">
-              <div className="w-16 h-1 bg-slate-900 rounded-full overflow-hidden">
+            <span className="text-[9px] text-slate-400 uppercase tracking-widest font-bold font-mono">Cluster CPU</span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="w-16 h-1.5 bg-slate-900/90 border border-slate-800/80 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-1000 ${
                     systemMetrics.cpu > 90 ? 'bg-rose-500' : systemMetrics.cpu > 80 ? 'bg-amber-500' : 'bg-blue-500'
@@ -341,8 +341,8 @@ export default function Navbar({
                   style={{ width: `${systemMetrics.cpu}%` }}
                 />
               </div>
-              <span className={`text-xs font-mono font-medium ${
-                systemMetrics.cpu > 90 ? 'text-rose-400' : systemMetrics.cpu > 80 ? 'text-amber-400' : 'text-slate-300'
+              <span className={`text-xs font-mono font-bold ${
+                systemMetrics.cpu > 90 ? 'text-rose-400' : systemMetrics.cpu > 80 ? 'text-amber-400' : 'text-slate-200'
               }`}>{systemMetrics.cpu.toFixed(1)}%</span>
             </div>
           </div>
@@ -351,9 +351,9 @@ export default function Navbar({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 hover:bg-slate-900 hover:border-slate-700 text-xs font-medium text-slate-300 hover:text-slate-100 transition-all cursor-pointer select-none"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-800/80 bg-slate-900/80 hover:bg-slate-800/90 hover:border-slate-700 text-xs font-semibold text-slate-200 transition-all duration-200 cursor-pointer select-none shadow-sm"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-400' : 'text-slate-500'}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-blue-400' : 'text-slate-400'}`} />
             <span className="hidden xs:inline">Sync</span>
           </button>
 
@@ -362,7 +362,7 @@ export default function Navbar({
             <div className="relative">
               <button
                 onClick={() => setShowProfilePopover(!showProfilePopover)}
-                className="flex items-center gap-2 p-1.5 rounded-xl border border-slate-800 hover:border-blue-500/40 bg-slate-900/80 hover:bg-slate-900 transition-all cursor-pointer"
+                className="flex items-center gap-2 p-1.5 px-2.5 rounded-xl border border-slate-800/80 hover:border-blue-500/40 bg-slate-900/80 hover:bg-slate-800/90 transition-all duration-200 cursor-pointer shadow-sm"
                 title="Profile & Quick System Info"
               >
                 <img 

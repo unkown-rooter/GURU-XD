@@ -241,42 +241,47 @@ export default function DashboardView({
       </div>
 
       {/* Welcome & Brand Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-900 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900/90 to-slate-950 border border-slate-800/80 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="flex items-center gap-5 relative z-10 text-center md:text-left flex-col md:flex-row">
-          <img 
-            src={logoUrl} 
-            alt="GURU-XD Premium Brand Logo" 
-            className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-4 ring-blue-500/10 shadow-2xl"
-            referrerPolicy="no-referrer"
-          />
+          <div className="relative group">
+            <img 
+              src={logoUrl} 
+              alt="GURU-XD Premium Brand Logo" 
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover ring-2 ring-blue-500/30 shadow-2xl group-hover:ring-blue-400 transition-all duration-300"
+              referrerPolicy="no-referrer"
+            />
+            <span className="absolute -bottom-1 -right-1 p-1 bg-blue-600 rounded-lg text-white shadow-lg">
+              <Zap className="w-3.5 h-3.5" />
+            </span>
+          </div>
           <div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
               HYPERVISOR CORES ONLINE • v2.0.1
             </span>
             <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-100 tracking-tight flex items-center gap-2">
               GURU-XD Bot Hosting Engine
-              <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">v2.0.1-Release</span>
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">v2.0.1-Release</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-300 mt-1.5 max-w-xl leading-relaxed">
               Empower your multi-device messaging clusters. Automate manual queries, connect secure webhooks, and dominate community channels.
             </p>
           </div>
         </div>
 
-        <div className="flex flex-row md:flex-col items-end gap-2 relative z-10 border-t border-slate-900/60 md:border-0 pt-4 md:pt-0 w-full md:w-auto justify-center">
+        <div className="flex flex-row md:flex-col items-end gap-2 relative z-10 border-t border-slate-800/60 md:border-0 pt-4 md:pt-0 w-full md:w-auto justify-center">
           <div className="text-center md:text-right flex flex-col items-center md:items-end gap-2">
-            <span className="text-[10px] uppercase font-mono text-slate-500 tracking-wider block">GATEWAY API STATUS</span>
+            <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-widest block">GATEWAY API STATUS</span>
             <div className="flex items-center gap-2 mt-0.5 justify-center md:justify-end">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-mono font-bold text-emerald-400">OPERATIONAL</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="text-xs font-mono font-bold text-emerald-400 tracking-wider">OPERATIONAL</span>
             </div>
             <button
               onClick={() => setShowReleaseDetails(!showReleaseDetails)}
-              className="mt-2 text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-900 hover:bg-slate-800 border border-slate-800 text-blue-400 hover:text-blue-300 py-1 px-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="mt-2 text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-blue-400 hover:text-blue-300 py-1.5 px-3 rounded-xl transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0 shadow-sm"
             >
               <GitCompare className="w-3.5 h-3.5 text-blue-400" />
               <span>{showReleaseDetails ? "Hide Evolution" : "Compare v1.0.0 vs v2.0.1"}</span>

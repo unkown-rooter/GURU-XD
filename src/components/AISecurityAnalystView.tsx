@@ -79,11 +79,29 @@ export interface SecurityIncident {
 export default function AISecurityAnalystView() {
   const [incidents, setIncidents] = useState<SecurityIncident[]>([]);
   const [selectedIncident, setSelectedIncident] = useState<SecurityIncident | null>(null);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [resolving, setResolving] = useState<boolean>(false);
   const [adminNote, setAdminNote] = useState<string>('');
   const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'PANEL' | 'CHAIN' | 'TIMELINE' | 'HISTORICAL' | 'CATEGORY'>('PANEL');
+
+  // Payload Scanner Test State
+  const [scanInput, setScanInput] = useState<string>('');
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [scanning, setScanning] = useState<boolean>(false);
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/security-analyst/stats');
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Error fetching security stats:', err);
+    }
+  };
 
   const fetchIncidents = async () => {
     try {
@@ -100,10 +118,51 @@ export default function AISecurityAnalystView() {
           if (updated) setSelectedIncident(updated);
         }
       }
+      fetchStats();
     } catch (err) {
       console.error('Error fetching AI security incidents:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDismissIncident = async () => {
+    if (!selectedIncident) return;
+    try {
+      setResolving(true);
+      const res = await fetch(`/api/security-analyst/incidents/${selectedIncident.incidentId}/dismiss`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccessMessage(`Incident ${selectedIncident.incidentId} dismissed and archived.`);
+        setTimeout(() => setActionSuccessMessage(null), 5000);
+        await fetchIncidents();
+      }
+    } catch (err) {
+      console.error('Error dismissing incident:', err);
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const handleScanPayload = async () => {
+    if (!scanInput.trim()) return;
+    try {
+      setScanning(true);
+      const res = await fetch('/api/security-analyst/scan-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promptText: scanInput })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setScanResult(data.scanResult);
+      }
+    } catch (err) {
+      console.error('Error scanning prompt payload:', err);
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -574,6 +633,13 @@ export default function AISecurityAnalystView() {
                             >
                               <Check className="w-3.5 h-3.5" />
                               {resolving ? 'Executing...' : 'Execute Recommended Fix'}
+                            </button>
+                            <button
+                              onClick={handleDismissIncident}
+                              disabled={resolving}
+                              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs flex items-center gap-1.5 transition-all shrink-0"
+                            >
+                              Dismiss
                             </button>
                           </div>
                         </div>

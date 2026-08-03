@@ -5,7 +5,7 @@ export class XAIAdapter extends BaseProviderAdapter {
   name = "xAI Grok 2";
   type = "xai";
   envVar = "XAI_API_KEY";
-  defaultModel = "grok-2-latest";
+  defaultModel = "grok-2-1212";
 
   public async healthCheck(): Promise<boolean> {
     if (!this.isConfigured()) return false;

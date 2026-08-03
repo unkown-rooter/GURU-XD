@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { BotCategory, TrustBadge } from './behaviorEngine';
+import { AppEventBus } from './services/eventBus';
 
 // ----------------------------------------------------
 // AI SECURITY ANALYST INTERFACES & TYPES
@@ -240,6 +241,37 @@ export class AISecurityAnalyst {
 
   private constructor() {
     this.seedInitialLiveIncidents();
+    this.subscribeToPlatformEvents();
+  }
+
+  private subscribeToPlatformEvents() {
+    const eventBus = AppEventBus.getInstance();
+
+    // Intercept message stream for automated security pattern monitoring
+    eventBus.subscribe('bot.message.received', (evt) => {
+      const { content, botId, platform } = evt.payload || {};
+      if (!content) return;
+
+      // Automated scanning for prompt injection or malicious payloads
+      const scanResult = this.scanPromptPayload(content);
+      if (scanResult.isMalicious) {
+        this.generateInvestigationReport(
+          botId || 'bot-1',
+          `Bot-${botId || '1'}`,
+          `DEP-2026-${botId || '101'}`,
+          'AI Assistant',
+          `Prompt Injection Threat Intercepted (${scanResult.threatType})`,
+          {
+            cpuUsagePct: 15,
+            ramUsageMb: 240,
+            storageUsageMb: 500,
+            apiRequestsCount: 1,
+            destinationEndpoints: [platform || 'inbound-webhook']
+          },
+          '🟡 Needs Review'
+        );
+      }
+    });
   }
 
   public static getInstance(): AISecurityAnalyst {
@@ -557,6 +589,120 @@ export class AISecurityAnalyst {
     });
 
     return incident;
+  }
+
+  // Dismiss / Ignore an incident
+  public dismissIncident(incidentId: string): SecurityIncident | undefined {
+    const incident = this.activeIncidents.get(incidentId);
+    if (!incident) return undefined;
+
+    incident.status = 'DISMISSED';
+    this.activeIncidents.delete(incidentId);
+    this.incidentArchive.unshift(incident);
+
+    emitAnalystEvent('security.analysis.resolved', {
+      incidentId,
+      status: 'DISMISSED',
+      incident
+    });
+
+    return incident;
+  }
+
+  // Retrieve full historical incident archive
+  public getHistoricalIncidents(): SecurityIncident[] {
+    return this.incidentArchive;
+  }
+
+  // Deep Malicious Payload & Prompt Injection Scanner
+  public scanPromptPayload(promptText: string): {
+    isMalicious: boolean;
+    threatType?: string;
+    riskScore: number;
+    explanation: string;
+  } {
+    const text = (promptText || '').toLowerCase();
+
+    // Signatures
+    const jailbreakPatterns = ['ignore previous instructions', 'system prompt override', 'act as DAN', 'developer mode on', 'bypass safety policies'];
+    const xssPatterns = ['<script>', 'javascript:', 'onerror=', 'onload='];
+    const sqliPatterns = ["' or '1'='1", 'union select', 'drop table', 'information_schema'];
+    const shellPatterns = ['; rm -rf', '&& wget', '| bash', 'nc -e /bin/sh', 'curl http'];
+
+    for (const pat of jailbreakPatterns) {
+      if (text.includes(pat.toLowerCase())) {
+        return {
+          isMalicious: true,
+          threatType: 'Jailbreak / System Prompt Override',
+          riskScore: 88,
+          explanation: `Detected system prompt override pattern: "${pat}"`
+        };
+      }
+    }
+
+    for (const pat of xssPatterns) {
+      if (text.includes(pat.toLowerCase())) {
+        return {
+          isMalicious: true,
+          threatType: 'Cross-Site Scripting (XSS)',
+          riskScore: 82,
+          explanation: `Detected script injection pattern: "${pat}"`
+        };
+      }
+    }
+
+    for (const pat of sqliPatterns) {
+      if (text.includes(pat.toLowerCase())) {
+        return {
+          isMalicious: true,
+          threatType: 'SQL Injection (SQLi)',
+          riskScore: 92,
+          explanation: `Detected database query manipulation pattern: "${pat}"`
+        };
+      }
+    }
+
+    for (const pat of shellPatterns) {
+      if (text.includes(pat.toLowerCase())) {
+        return {
+          isMalicious: true,
+          threatType: 'Command / Shell Injection',
+          riskScore: 96,
+          explanation: `Detected hazardous shell execution payload: "${pat}"`
+        };
+      }
+    }
+
+    return {
+      isMalicious: false,
+      riskScore: 5,
+      explanation: 'Payload passed automated heuristic & signature security checks.'
+    };
+  }
+
+  // Get Security Sentinel Dashboard Stats
+  public getSecurityStats() {
+    const active = Array.from(this.activeIncidents.values());
+    const totalInvestigated = active.length + this.incidentArchive.length;
+    const resolvedCount = this.incidentArchive.filter(i => i.status === 'RESOLVED').length;
+    const criticalCount = active.filter(i => i.riskLevel === 'Critical').length;
+    const highCount = active.filter(i => i.riskLevel === 'High').length;
+
+    const avgConfidence = Math.round(
+      [...active, ...this.incidentArchive].reduce((acc, i) => acc + (i.confidenceScorePct || 90), 0) / Math.max(1, totalInvestigated)
+    );
+
+    return {
+      activeIncidentsCount: active.length,
+      totalInvestigated,
+      resolvedCount,
+      criticalCount,
+      highCount,
+      avgConfidencePct: avgConfidence,
+      machineLearningKnowledgeCount: this.incidentArchive.length,
+      threatLevel: criticalCount > 0 ? 'CRITICAL' : highCount > 0 ? 'HIGH' : 'ELEVATED',
+      shieldStatus: 'ACTIVE_DEFENSE'
+    };
   }
 
   // Manually trigger a fresh AI Investigation on demand

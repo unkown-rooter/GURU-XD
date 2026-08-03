@@ -444,6 +444,8 @@ export const INITIAL_USERS: PortalUser[] = [
     email: 'admin@guru-xd.com',
     role: 'Administrator',
     status: 'active',
+    createdAt: '2026-08-01T09:00:00.000Z',
+    approvalStatus: 'approved',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80'
   },
   {
@@ -452,6 +454,8 @@ export const INITIAL_USERS: PortalUser[] = [
     email: 'alex@guru-xd.com',
     role: 'Developer',
     status: 'active',
+    createdAt: '2026-08-02T14:30:00.000Z',
+    approvalStatus: 'approved',
     avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&h=150&q=80'
   },
   {
@@ -460,6 +464,8 @@ export const INITIAL_USERS: PortalUser[] = [
     email: 'jane@guru-xd.com',
     role: 'Viewer',
     status: 'active',
+    createdAt: '2026-07-15T11:20:00.000Z',
+    approvalStatus: 'approved',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80'
   },
   {
@@ -468,7 +474,19 @@ export const INITIAL_USERS: PortalUser[] = [
     email: 'test@guru-xd.com',
     role: 'Viewer',
     status: 'suspended',
+    createdAt: '2026-07-20T16:00:00.000Z',
+    approvalStatus: 'approved',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80'
+  },
+  {
+    id: 'usr-5',
+    username: 'sarah_pending',
+    email: 'sarah.k@guru-xd.io',
+    role: 'Developer',
+    status: 'pending',
+    createdAt: '2026-08-03T07:15:00.000Z',
+    approvalStatus: 'pending',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80'
   }
 ];
 

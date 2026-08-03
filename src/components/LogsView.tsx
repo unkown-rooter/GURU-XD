@@ -22,14 +22,41 @@ export default function LogsView({ logs, commands, onClearLogs, onAddLog }: Logs
   const [filterType, setFilterType] = useState<string>('All');
   const [commandInput, setCommandInput] = useState<string>('');
   const [autoScroll, setAutoScroll] = useState<boolean>(true);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const terminalEndRef = useRef<HTMLDivElement | null>(null);
+  const isProgrammaticScrollRef = useRef<boolean>(false);
 
-  // Auto scroll logic
+  // Auto scroll effect when new logs arrive or when autoScroll is turned on
   useEffect(() => {
-    if (autoScroll && terminalEndRef.current) {
-      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (autoScroll && scrollContainerRef.current) {
+      isProgrammaticScrollRef.current = true;
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+      const timeout = setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 350);
+      return () => clearTimeout(timeout);
     }
   }, [logs, autoScroll]);
+
+  // Detect user scroll up to pause auto-scroll
+  const handleScroll = () => {
+    if (isProgrammaticScrollRef.current || !scrollContainerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    // Consider at bottom if within 35px of bottom
+    const isAtBottom = scrollHeight - scrollTop - clientHeight <= 35;
+
+    if (!isAtBottom && autoScroll) {
+      // User manually scrolled up -> pause auto-scrolling
+      setAutoScroll(false);
+    } else if (isAtBottom && !autoScroll) {
+      // User manually scrolled back down to bottom -> re-enable auto-scrolling
+      setAutoScroll(true);
+    }
+  };
 
   // Filter types
   const logTypes = ['All', 'Info', 'Command', 'Error', 'Success'];
@@ -121,33 +148,61 @@ export default function LogsView({ logs, commands, onClearLogs, onAddLog }: Logs
           <h1 className="text-2xl font-display font-bold text-slate-100 tracking-tight">Syslog Stream</h1>
           <p className="text-xs text-slate-400">Stream compilation diagnostics, active WhatsApp/Telegram hook parameters, and gateway logs.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setAutoScroll(!autoScroll)}
-            className={`px-3 py-1.8 rounded-lg text-xs font-semibold cursor-pointer border transition-colors flex items-center gap-1.5 ${
-              autoScroll 
-                ? 'bg-blue-600/10 border-blue-500/20 text-blue-400' 
-                : 'bg-slate-900 border-slate-850 text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <ArrowDownCircle className="w-3.5 h-3.5" />
-            <span>Auto-Scroll: {autoScroll ? 'ON' : 'OFF'}</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Auto-scroll Toggle Switch */}
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl shadow-sm">
+            <ArrowDownCircle className={`w-4 h-4 transition-colors ${autoScroll ? 'text-emerald-400 animate-pulse' : 'text-slate-500'}`} />
+            <span className="text-xs font-medium text-slate-300 font-mono">Auto-scroll</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={autoScroll}
+              onClick={() => {
+                const nextState = !autoScroll;
+                setAutoScroll(nextState);
+                if (nextState && scrollContainerRef.current) {
+                  isProgrammaticScrollRef.current = true;
+                  scrollContainerRef.current.scrollTo({
+                    top: scrollContainerRef.current.scrollHeight,
+                    behavior: 'smooth'
+                  });
+                  setTimeout(() => {
+                    isProgrammaticScrollRef.current = false;
+                  }, 350);
+                }
+              }}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
+                autoScroll ? 'bg-emerald-500' : 'bg-slate-700'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                  autoScroll ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className={`text-[10px] font-bold font-mono uppercase px-1.5 py-0.5 rounded ${
+              autoScroll ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-400 bg-slate-800/60'
+            }`}>
+              {autoScroll ? 'ON' : 'PAUSED'}
+            </span>
+          </div>
+
           <button 
             onClick={onClearLogs}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-semibold text-xs px-4 py-2 rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 font-semibold text-xs px-3.5 py-2 rounded-xl transition-colors cursor-pointer shadow-sm"
           >
             <Trash2 className="w-4 h-4 text-slate-500" />
-            <span>Clear Stream</span>
+            <span className="hidden sm:inline">Clear Stream</span>
           </button>
         </div>
       </div>
 
       {/* Main Terminal Frame */}
-      <div className="bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden flex flex-col h-[560px]">
+      <div className="relative bg-slate-950 border border-slate-900 rounded-2xl overflow-hidden flex flex-col h-[500px] sm:h-[560px] md:h-[620px]">
         {/* Sub Header / Filters */}
-        <div className="p-4 bg-slate-950 border-b border-slate-900 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5">
+        <div className="p-3 sm:p-4 bg-slate-950 border-b border-slate-900 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
             {logTypes.map((type) => (
               <button
                 key={type}
@@ -170,7 +225,11 @@ export default function LogsView({ logs, commands, onClearLogs, onAddLog }: Logs
         </div>
 
         {/* Console Box */}
-        <div className="flex-1 overflow-y-auto p-5 font-mono text-[11px] space-y-2 bg-slate-950 scrollbar-thin">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 sm:p-5 font-mono text-[11px] space-y-2 bg-slate-950 scrollbar-thin relative"
+        >
           <div className="text-slate-600 mb-4 border-b border-slate-900/60 pb-3">
             <span>--- PIPELINE ESTABLISHED: CLUSTER INT-3 // CORE INITIALIZED ---</span>
             <br />
@@ -198,6 +257,29 @@ export default function LogsView({ logs, commands, onClearLogs, onAddLog }: Logs
 
           <div ref={terminalEndRef} />
         </div>
+
+        {/* Floating Scroll-to-Bottom Pill when auto-scroll is paused */}
+        {!autoScroll && (
+          <button
+            onClick={() => {
+              setAutoScroll(true);
+              if (scrollContainerRef.current) {
+                isProgrammaticScrollRef.current = true;
+                scrollContainerRef.current.scrollTo({
+                  top: scrollContainerRef.current.scrollHeight,
+                  behavior: 'smooth'
+                });
+                setTimeout(() => {
+                  isProgrammaticScrollRef.current = false;
+                }, 350);
+              }
+            }}
+            className="absolute bottom-16 right-4 sm:right-6 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-mono px-3 py-1.5 rounded-full shadow-xl border border-blue-400/30 flex items-center gap-1.5 transition-all animate-bounce cursor-pointer z-20"
+          >
+            <ArrowDownCircle className="w-3.5 h-3.5" />
+            <span>Resume Auto-scroll</span>
+          </button>
+        )}
 
         {/* Shell Input Frame */}
         <div className="p-3 bg-slate-950 border-t border-slate-900">

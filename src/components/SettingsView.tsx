@@ -25,6 +25,7 @@ export default function SettingsView({ onSettingsSaved }: SettingsViewProps) {
 
   // Retention Policy fields
   const [autoClear7Days, setAutoClear7Days] = useState(false);
+  const [autoPurgeAuditLogs30Days, setAutoPurgeAuditLogs30Days] = useState(false);
   const [maxLogEntries, setMaxLogEntries] = useState(150);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
@@ -46,6 +47,7 @@ export default function SettingsView({ onSettingsSaved }: SettingsViewProps) {
       .then(([retentionData, maintenanceData]) => {
         if (retentionData.success && retentionData.retentionPolicy) {
           setAutoClear7Days(retentionData.retentionPolicy.autoClear7Days);
+          setAutoPurgeAuditLogs30Days(retentionData.retentionPolicy.autoPurgeAuditLogs30Days || false);
           setMaxLogEntries(retentionData.retentionPolicy.maxLogEntries);
         }
         if (maintenanceData.success) {
@@ -73,6 +75,7 @@ export default function SettingsView({ onSettingsSaved }: SettingsViewProps) {
           },
           body: JSON.stringify({
             autoClear7Days,
+            autoPurgeAuditLogs30Days,
             maxLogEntries
           })
         }),
@@ -255,6 +258,26 @@ export default function SettingsView({ onSettingsSaved }: SettingsViewProps) {
                 >
                   <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                     autoClear7Days ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Option: Auto-purge Audit Logs older than 30 days */}
+              <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-900/60">
+                <div className="space-y-0.5">
+                  <span className="text-sm font-semibold text-slate-200 block">Auto-purge Audit Logs older than 30 days</span>
+                  <p className="text-xs text-slate-400 max-w-md">Automatically purge AuditLog collection entries older than 30 days to optimize index sizes and query performance.</p>
+                </div>
+                <button
+                  type="button"
+                  id="toggle-auto-purge-audit-logs"
+                  onClick={() => setAutoPurgeAuditLogs30Days(!autoPurgeAuditLogs30Days)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    autoPurgeAuditLogs30Days ? 'bg-blue-600' : 'bg-slate-800'
+                  }`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    autoPurgeAuditLogs30Days ? 'translate-x-5' : 'translate-x-0'
                   }`} />
                 </button>
               </div>

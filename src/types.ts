@@ -96,8 +96,10 @@ export interface PortalUser {
   username: string;
   email: string;
   role: 'Administrator' | 'Developer' | 'Viewer';
-  status: 'active' | 'suspended';
+  status: 'active' | 'suspended' | 'pending';
   avatar: string;
+  createdAt?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
   twoFactorEnabled?: boolean;
   twoFactorMethod?: 'email' | 'sms' | 'authenticator' | 'authy' | 'microsoft';
   failedAttempts?: number;

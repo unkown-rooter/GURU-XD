@@ -2562,6 +2562,96 @@ export class BehaviorEngineController {
     }
   }
 
+  public static async rebaselineProfile(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const profile = behaviorEngine.rebaseline(id);
+      if (!profile) {
+        return res.status(404).json({ success: false, error: 'Instance not found' });
+      }
+      res.json({ success: true, profile });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to rebaseline profile' });
+    }
+  }
+
+  public static async policyOverride(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { policy, reason } = req.body;
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const profile = behaviorEngine.policyOverride(id, policy, reason);
+      if (!profile) {
+        return res.status(404).json({ success: false, error: 'Instance not found' });
+      }
+      res.json({ success: true, profile });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to apply policy override' });
+    }
+  }
+
+  public static async toggleStatus(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const profile = behaviorEngine.toggleStatus(id);
+      if (!profile) {
+        return res.status(404).json({ success: false, error: 'Instance not found' });
+      }
+      res.json({ success: true, profile });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to toggle status' });
+    }
+  }
+
+  public static async getRules(req: Request, res: Response) {
+    try {
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const rules = behaviorEngine.getCustomRules();
+      res.json({ success: true, rules });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch behavior rules' });
+    }
+  }
+
+  public static async addRule(req: Request, res: Response) {
+    try {
+      const { rule } = req.body;
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const created = behaviorEngine.addCustomRule(rule);
+      res.json({ success: true, rule: created });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to add custom rule' });
+    }
+  }
+
+  public static async getAnalytics(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const trends = behaviorEngine.analyzeTrends(id);
+      const prediction = behaviorEngine.predictBehavior(id);
+      const anomaly = behaviorEngine.evaluateAnomaly(id);
+      const patterns = behaviorEngine.detectPatterns(id);
+      res.json({ success: true, trends, prediction, anomaly, patterns });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch behavior analytics' });
+    }
+  }
+
+  public static async getOrganizationOverview(req: Request, res: Response) {
+    try {
+      const { behaviorEngine } = await import("./behaviorEngine");
+      const orgProfile = behaviorEngine.getOrganizationProfile();
+      const crossServiceAnalysis = behaviorEngine.getCrossServiceBehaviorAnalysis();
+      const learningMetrics = behaviorEngine.getAILearningMetrics();
+      res.json({ success: true, orgProfile, crossServiceAnalysis, learningMetrics });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch organization behavior overview' });
+    }
+  }
+
   public static async simulateSpike(req: Request, res: Response) {
     try {
       const { id } = req.params;
@@ -2674,6 +2764,51 @@ export class SecurityAnalystController {
       res.json({ success: true, incident });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err?.message || 'Failed to resolve incident' });
+    }
+  }
+
+  public static async dismissIncident(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { securityAnalyst } = await import("./securityAnalyst");
+      const incident = securityAnalyst.dismissIncident(id);
+      if (!incident) {
+        return res.status(404).json({ success: false, error: 'Incident not found' });
+      }
+      res.json({ success: true, incident });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to dismiss incident' });
+    }
+  }
+
+  public static async getStats(req: Request, res: Response) {
+    try {
+      const { securityAnalyst } = await import("./securityAnalyst");
+      const stats = securityAnalyst.getSecurityStats();
+      res.json({ success: true, stats });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch security stats' });
+    }
+  }
+
+  public static async getHistorical(req: Request, res: Response) {
+    try {
+      const { securityAnalyst } = await import("./securityAnalyst");
+      const incidents = securityAnalyst.getHistoricalIncidents();
+      res.json({ success: true, incidents });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to fetch historical incidents' });
+    }
+  }
+
+  public static async scanPayload(req: Request, res: Response) {
+    try {
+      const { promptText } = req.body;
+      const { securityAnalyst } = await import("./securityAnalyst");
+      const scanResult = securityAnalyst.scanPromptPayload(promptText || '');
+      res.json({ success: true, scanResult });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to scan payload' });
     }
   }
 
@@ -3808,6 +3943,89 @@ export class EngineeringGovernanceController {
       return sendApiResponse(res, 200, { message: msg }, "Platform message routed.");
     } catch (err: any) {
       return sendApiResponse(res, 500, { error: err.message }, "Failed to route platform message.");
+    }
+  }
+}
+
+// ============================================================================
+// BOT ADAPTER CONTROLLER (Priority 1 - Baileys MD & Telegram Bridge)
+// ============================================================================
+
+export class BotAdapterController {
+  public static getAdapters(req: Request, res: Response) {
+    try {
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const sessions = service.getAllSessions();
+      return sendApiResponse(res, 200, { adapters: sessions }, "Bot adapters retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch bot adapters.");
+    }
+  }
+
+  public static getAdapterStatus(req: Request, res: Response) {
+    try {
+      const { botId } = req.params;
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const session = service.getSession(botId);
+      if (!session) {
+        return sendApiResponse(res, 404, null, `Bot adapter session not found for botId: ${botId}`);
+      }
+      return sendApiResponse(res, 200, { adapter: session }, "Bot adapter status retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch bot adapter status.");
+    }
+  }
+
+  public static async connectAdapter(req: Request, res: Response) {
+    try {
+      const { botId } = req.params;
+      const { telegramToken, phoneNumber } = req.body;
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const result = await service.connectBot(botId, { telegramToken, phoneNumber });
+      return sendApiResponse(res, 200, result, "Bot adapter connection initiated.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to connect bot adapter.");
+    }
+  }
+
+  public static async disconnectAdapter(req: Request, res: Response) {
+    try {
+      const { botId } = req.params;
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const success = await service.disconnectBot(botId);
+      return sendApiResponse(res, 200, { success }, "Bot adapter disconnected.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to disconnect bot adapter.");
+    }
+  }
+
+  public static async sendAdapterMessage(req: Request, res: Response) {
+    try {
+      const { botId } = req.params;
+      const outbound = req.body;
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const result = await service.sendMessage(botId, outbound);
+      return sendApiResponse(res, 200, result, "Message queued/sent via bot adapter.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to send message via bot adapter.");
+    }
+  }
+
+  public static handleAdapterWebhook(req: Request, res: Response) {
+    try {
+      const { botId } = req.params;
+      const rawPayload = req.body;
+      const { BotAdapterService } = require('./services/botAdapterService');
+      const service = BotAdapterService.getInstance();
+      const inbound = service.handleInboundWebhook(botId, rawPayload);
+      return sendApiResponse(res, 200, { inbound }, "Inbound webhook processed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to process inbound adapter webhook.");
     }
   }
 }

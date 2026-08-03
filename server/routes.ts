@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { DatabaseService } from "./db";
+import { dao } from "./dao";
 import { apiGuard, rateLimiter } from "./middleware";
 import {
   BotController,
@@ -21,7 +22,8 @@ import {
   EnterpriseDeploymentController,
   DeploymentValidatorController,
   EnvConfigController,
-  EngineeringGovernanceController
+  EngineeringGovernanceController,
+  BotAdapterController
 } from "./controllers";
 
 const router = Router();
@@ -81,6 +83,192 @@ v1Router.get("/metrics", apiGuard, (req, res) => {
 
 /**
  * @openapi
+ * /api/v1/database/metrics:
+ *   get:
+ *     summary: Database telemetry, metrics, and active storage driver status
+ *     tags: [Core System]
+ */
+v1Router.get("/database/metrics", (req, res) => {
+  res.json({
+    success: true,
+    metrics: dbService.getMetrics(),
+    health: dbService.checkHealth()
+  });
+});
+
+/**
+ * @openapi
+ * /api/v1/database/health:
+ *   get:
+ *     summary: Database connection health check
+ *     tags: [Core System]
+ */
+v1Router.get("/database/health", (req, res) => {
+  res.json({
+    success: true,
+    health: dbService.checkHealth()
+  });
+});
+
+/**
+ * @openapi
+ * /api/v1/dao/stats:
+ *   get:
+ *     summary: DAO Layer global stats and cluster metrics
+ *     tags: [Data Access Layer]
+ */
+v1Router.get("/dao/stats", (req, res) => {
+  res.json({
+    success: true,
+    globalStats: dao.getGlobalStats(),
+    clusterOverview: dao.bot.getClusterOverview(),
+    metrics: dbService.getMetrics()
+  });
+});
+
+/**
+ * @openapi
+ * /api/v1/dao/bots:
+ *   get:
+ *     summary: Query bots via BotDao with filtering & pagination
+ *     tags: [Data Access Layer]
+ */
+v1Router.get("/dao/bots", (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const search = req.query.search as string;
+  const platform = req.query.platform as "WhatsApp" | "Telegram";
+
+  let result;
+  if (platform) {
+    result = dao.bot.findMany((b) => b.platform === platform, { page, limit });
+  } else if (search) {
+    result = dao.bot.searchBots(search, { page, limit });
+  } else {
+    result = dao.bot.findAll(undefined, { page, limit });
+  }
+
+  res.json({ success: true, result });
+});
+
+/**
+ * @openapi
+ * /api/v1/dao/commands:
+ *   get:
+ *     summary: Query commands via CommandDao with filtering & pagination
+ *     tags: [Data Access Layer]
+ */
+v1Router.get("/dao/commands", (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const search = req.query.search as string;
+
+  const result = search
+    ? dao.command.searchCommands(search, { page, limit })
+    : dao.command.findAll(undefined, { page, limit });
+
+  res.json({ success: true, result });
+});
+
+/**
+ * @openapi
+ * /api/v1/dao/users:
+ *   get:
+ *     summary: Query users via UserDao with role filtering & password stripping
+ *     tags: [Data Access Layer]
+ */
+v1Router.get("/dao/users", (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const search = req.query.search as string;
+
+  const result = dao.user.findAllSanitized(search, { page, limit });
+  res.json({ success: true, result });
+});
+
+/**
+ * @openapi
+ * /api/v1/dao/audit-logs:
+ *   get:
+ *     summary: Query audit logs from AuditLogDao
+ *     tags: [Data Access Layer]
+ */
+v1Router.get("/dao/audit-logs", (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+  const userId = req.query.userId as string;
+  const entity = req.query.entity as string;
+
+  let result;
+  if (userId) {
+    result = dao.auditLog.findMany((entry) => entry.userId === userId || entry.entityId === userId, { page, limit });
+  } else if (entity) {
+    result = dao.auditLog.findByEntity(entity, { page, limit });
+  } else {
+    result = dao.auditLog.findAll({ page, limit });
+  }
+  res.json({ success: true, result });
+});
+
+/**
+ * @openapi
+ * /api/v1/users/:id/activity:
+ *   get:
+ *     summary: Fetch audit trail and activity log for a specific user ID
+ *     tags: [Users]
+ */
+v1Router.get("/users/:id/activity", (req, res) => {
+  const { id } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 50;
+
+  const result = dao.auditLog.findMany((entry) => entry.userId === id || entry.entityId === id, { page, limit });
+  res.json({ success: true, userId: id, result });
+});
+
+/**
+ * @openapi
+ * /api/v1/database/snapshots:
+ *   get:
+ *     summary: List all database snapshots
+ *   post:
+ *     summary: Create a manual database snapshot
+ */
+v1Router.get("/database/snapshots", (req, res) => {
+  res.json({
+    success: true,
+    snapshots: dbService.listSnapshots()
+  });
+});
+
+v1Router.post("/database/snapshots", apiGuard, (req, res) => {
+  const { tag } = req.body;
+  const snap = dbService.createSnapshot(tag || "manual-ui");
+  dbService.addLog("success", "DATABASE_ENGINE", `Created manual database snapshot: ${snap.id} (${snap.checksum.substring(0, 8)})`);
+  res.json({
+    success: true,
+    snapshot: {
+      id: snap.id,
+      tag: snap.tag,
+      timestamp: snap.timestamp,
+      checksum: snap.checksum
+    }
+  });
+});
+
+v1Router.post("/database/snapshots/:id/restore", apiGuard, (req, res) => {
+  const { id } = req.params;
+  const ok = dbService.restoreFromSnapshot(id);
+  if (ok) {
+    dbService.addLog("warning", "DATABASE_ENGINE", `Restored database state from snapshot ID: ${id}`);
+    res.json({ success: true, message: `Successfully restored database from snapshot ${id}` });
+  } else {
+    res.status(404).json({ success: false, message: `Snapshot ${id} not found or invalid` });
+  }
+});
+
+/**
+ * @openapi
  * /api/v1/data:
  *   get:
  *     summary: Telemetry fluctuation & database state fetch
@@ -135,6 +323,7 @@ v1Router.get("/retention", (req, res) => {
   if (!db.retentionPolicy) {
     db.retentionPolicy = {
       autoClear7Days: false,
+      autoPurgeAuditLogs30Days: false,
       maxLogEntries: 150
     };
     dbService.write(db);
@@ -143,15 +332,16 @@ v1Router.get("/retention", (req, res) => {
 });
 
 v1Router.post("/retention", apiGuard, (req, res) => {
-  const { autoClear7Days, maxLogEntries } = req.body;
+  const { autoClear7Days, autoPurgeAuditLogs30Days, maxLogEntries } = req.body;
   const db = dbService.read();
   db.retentionPolicy = {
     autoClear7Days: !!autoClear7Days,
+    autoPurgeAuditLogs30Days: !!autoPurgeAuditLogs30Days,
     maxLogEntries: typeof maxLogEntries === 'number' ? maxLogEntries : 150
   };
   
   dbService.enforceRetentionPolicy(db);
-  dbService.addLog("success", "SYSTEM", `Retention policy updated. Auto-clear >7d: ${db.retentionPolicy.autoClear7Days}, Max entries: ${db.retentionPolicy.maxLogEntries}`);
+  dbService.addLog("success", "SYSTEM", `Retention policy updated. Auto-clear >7d: ${db.retentionPolicy.autoClear7Days}, Auto-purge audit logs >30d: ${db.retentionPolicy.autoPurgeAuditLogs30Days}, Max entries: ${db.retentionPolicy.maxLogEntries}`);
   dbService.write(db);
   res.json({ success: true, retentionPolicy: db.retentionPolicy, logs: db.logs });
 });
@@ -263,13 +453,24 @@ v1Router.get("/deployments/validator/reports/:id", apiGuard, DeploymentValidator
 v1Router.get("/behavior/profiles", apiGuard, BehaviorEngineController.getProfiles);
 v1Router.get("/behavior/profile/:id", apiGuard, BehaviorEngineController.getProfile);
 v1Router.post("/behavior/profile/:id/policy", apiGuard, BehaviorEngineController.updatePolicy);
+v1Router.post("/behavior/profile/:id/rebaseline", apiGuard, BehaviorEngineController.rebaselineProfile);
+v1Router.post("/behavior/profile/:id/policy-override", apiGuard, BehaviorEngineController.policyOverride);
+v1Router.post("/behavior/profile/:id/toggle-status", apiGuard, BehaviorEngineController.toggleStatus);
 v1Router.post("/behavior/profile/:id/simulate-spike", apiGuard, BehaviorEngineController.simulateSpike);
+v1Router.get("/behavior/profile/:id/analytics", apiGuard, BehaviorEngineController.getAnalytics);
+v1Router.get("/behavior/rules", apiGuard, BehaviorEngineController.getRules);
+v1Router.post("/behavior/rules", apiGuard, BehaviorEngineController.addRule);
+v1Router.get("/behavior/organization", apiGuard, BehaviorEngineController.getOrganizationOverview);
 v1Router.get("/behavior/events", BehaviorEngineController.streamEvents);
 
 v1Router.get("/security-analyst/incidents", apiGuard, SecurityAnalystController.getIncidents);
 v1Router.get("/security-analyst/incidents/:id", apiGuard, SecurityAnalystController.getIncident);
+v1Router.get("/security-analyst/stats", apiGuard, SecurityAnalystController.getStats);
+v1Router.get("/security-analyst/historical", apiGuard, SecurityAnalystController.getHistorical);
 v1Router.post("/security-analyst/investigate", apiGuard, SecurityAnalystController.triggerInvestigation);
 v1Router.post("/security-analyst/incidents/:id/resolve", apiGuard, SecurityAnalystController.resolveIncident);
+v1Router.post("/security-analyst/incidents/:id/dismiss", apiGuard, SecurityAnalystController.dismissIncident);
+v1Router.post("/security-analyst/scan-prompt", apiGuard, SecurityAnalystController.scanPayload);
 v1Router.get("/security-analyst/events", SecurityAnalystController.streamEvents);
 
 // ============================================================================
@@ -437,6 +638,16 @@ v1Router.get("/governance/workflows", apiGuard, EngineeringGovernanceController.
 v1Router.post("/governance/safety-check", apiGuard, EngineeringGovernanceController.verifySafetyCheck);
 v1Router.get("/governance/audit-logs", apiGuard, EngineeringGovernanceController.getGovernanceAuditLogs);
 v1Router.post("/governance/message/route", apiGuard, EngineeringGovernanceController.sendPlatformMessage);
+
+// ============================================================================
+// 12. BOT ADAPTER SERVICE ROUTES (Priority 1 - Baileys MD & Telegram Bridge)
+// ============================================================================
+v1Router.get("/bots/adapters", apiGuard, BotAdapterController.getAdapters);
+v1Router.get("/bots/adapters/:botId/status", apiGuard, BotAdapterController.getAdapterStatus);
+v1Router.post("/bots/adapters/:botId/connect", apiGuard, BotAdapterController.connectAdapter);
+v1Router.post("/bots/adapters/:botId/disconnect", apiGuard, BotAdapterController.disconnectAdapter);
+v1Router.post("/bots/adapters/:botId/send", apiGuard, BotAdapterController.sendAdapterMessage);
+v1Router.post("/bots/adapters/:botId/webhook", apiGuard, BotAdapterController.handleAdapterWebhook);
 
 // ============================================================================
 // API ROUTER REGISTRATION (NON-BREAKING DUAL MOUNTING FOR /api/v1 AND /api)

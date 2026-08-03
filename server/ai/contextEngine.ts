@@ -7,6 +7,7 @@ export interface SystemContext {
   activeCommandsCount: number;
   memoryItemsCount: number;
   recentLogsSummary: string;
+  usersCount: number;
 }
 
 /**
@@ -34,13 +35,15 @@ export class ContextEngine {
     const db = this.dbService.read();
     const runningBots = (db.bots || []).filter(b => b.status === 'running');
     const recentLogs = (db.logs || []).slice(-5).map(l => `[${l.type.toUpperCase()}] ${l.message}`).join('\n');
+    const users = db.users || [];
 
     return {
       activeBotsCount: runningBots.length,
       totalBotsCount: (db.bots || []).length,
       activeCommandsCount: (db.commands || []).length,
       memoryItemsCount: (db.copilotMemory || []).length,
-      recentLogsSummary: recentLogs
+      recentLogsSummary: recentLogs,
+      usersCount: users.length
     };
   }
 
@@ -49,12 +52,19 @@ export class ContextEngine {
    */
   public buildPromptContext(agent: CopilotAgentProfile, userRole: string): string {
     const sysCtx = this.getSystemContext();
+    const db = this.dbService.read();
+    const users = db.users || [];
+    const usersList = users.map((u: any) => `- ${u.username} (${u.email}) [Role: ${u.role}, Status: ${u.status}]`).join('\n');
+
     return `
 === PLATFORM CONTEXT (INTERNAL REFERENCE ONLY - DO NOT DUMP RAW STATUS UNLESS REQUESTED) ===
 Agent: ${agent.name} (${agent.role})
 Domain: ${agent.domain}
 Operator Role: ${userRole}
 Active Cluster State: ${sysCtx.activeBotsCount}/${sysCtx.totalBotsCount} Bots Running | ${sysCtx.activeCommandsCount} Active Commands
+
+Registered Platform Users (${users.length}):
+${usersList}
 `;
   }
 }

@@ -110,6 +110,50 @@ Welcome! Here is how to work with **GURU-XD**:
 - **Example Command:** Ask me to *"build a WhatsApp bot handler"* or *"run a security audit"*.`;
     }
 
+    // Check user memory / platform users inquiry
+    if (
+      lower.includes('user') ||
+      lower.includes('users') ||
+      lower.includes('member') ||
+      lower.includes('members')
+    ) {
+      const users = db.users || [];
+      const activeUsers = users.filter((u: any) => u.status === 'active');
+      const pendingUsers = users.filter((u: any) => u.status === 'pending' || u.approvalStatus === 'pending');
+      const suspendedUsers = users.filter((u: any) => u.status === 'suspended');
+
+      const userMemories = memories.filter(m =>
+        m.category === 'user' ||
+        (m.tags && Array.isArray(m.tags) && m.tags.includes('user')) ||
+        (m.key && m.key.toLowerCase().includes('user'))
+      );
+
+      let responseText = `### 🧠 AI Brain User Memory & Member Intelligence\n\n`;
+      responseText += `Yes! The **AI Brain** tracks and remembers all **${users.length} registered platform members** in active state:\n\n`;
+
+      responseText += `#### 👤 Registered Members Context:\n`;
+      users.forEach((u: any) => {
+        const badge = u.status === 'active' ? '🟢 Active' : u.status === 'pending' ? '⏳ Pending Approval' : '🔴 Suspended';
+        responseText += `* **${u.username}** (\`${u.email}\`) — **${u.role}** [${badge}]\n`;
+      });
+
+      responseText += `\n#### 📊 Member Summary Metrics:\n`;
+      responseText += `* **Active Operational Accounts:** ${activeUsers.length}\n`;
+      responseText += `* **Pending Access Requests:** ${pendingUsers.length}\n`;
+      responseText += `* **Suspended Accounts:** ${suspendedUsers.length}\n`;
+
+      if (userMemories.length > 0) {
+        responseText += `\n#### 💾 Persisted User Memory Context:\n`;
+        userMemories.forEach(m => {
+          responseText += `* **${m.key.toUpperCase()}:** ${m.value || JSON.stringify(m.content)}\n`;
+        });
+      }
+
+      responseText += `\n*The AI Brain synchronizes this memory in real-time as users are provisioned, approved, or modified.*`;
+
+      return responseText;
+    }
+
     // Check memory keywords
     if (keywordDetection.primaryIntent === 'MEMORY') {
       const personality = this.keywordEngine.getLearnedPersonality();

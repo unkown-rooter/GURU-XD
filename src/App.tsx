@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logoUrl from './assets/images/guru_xd_logo_1784332841454.jpg';
 import { 
   Bot, 
@@ -53,7 +53,7 @@ import HelpView from './components/HelpView';
 import EnvConfigManagerView from './components/EnvConfigManagerView';
 import GuruArchitectureVersionsView from './components/GuruArchitectureVersionsView';
 
-import { Sparkles, Key, Lock, AlertCircle, Bolt, Terminal, LayoutDashboard, ScrollText, Menu, Bot as BotIcon, ShieldAlert } from 'lucide-react';
+import { Sparkles, Key, Lock, AlertCircle, AlertTriangle, Bolt, Terminal, LayoutDashboard, ScrollText, Menu, Bot as BotIcon, ShieldAlert, Clock, Pause } from 'lucide-react';
 
 // Import Firebase Client-Side modules
 import { 
@@ -243,6 +243,8 @@ export default function App() {
   const SESSION_DURATION = 300; // 5 minutes standard session duration
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number>(SESSION_DURATION);
   const [showTimeoutWarning, setShowTimeoutWarning] = useState<boolean>(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
+  const [isExitingLogoutConfirm, setIsExitingLogoutConfirm] = useState<boolean>(false);
   const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
 
   // --- Telemetry Refresh Simulators ---
@@ -1297,6 +1299,65 @@ export default function App() {
     });
   };
 
+  const handlePauseLogoutCountdown = () => {
+    setSessionTimeLeft(prev => prev + 60);
+    addManualLog({
+      type: 'info',
+      source: 'SECURITY',
+      message: 'Logout countdown paused and extended by +60s for administrative review.'
+    });
+  };
+
+  // --- Subtle Browser Audio Alert for Final 10-Second Warning State ---
+  const playWarningBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Soft dual-frequency alert chime (A5 880Hz -> C6 1046.5Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now);
+      gain1.gain.setValueAtTime(0.01, now);
+      gain1.gain.linearRampToValueAtTime(0.08, now + 0.03);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1046.5, now + 0.16);
+      gain2.gain.setValueAtTime(0.01, now + 0.16);
+      gain2.gain.linearRampToValueAtTime(0.08, now + 0.19);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.16);
+      osc2.stop(now + 0.35);
+    } catch {
+      // Browsers may block audio autoplay without prior gesture; fails gracefully
+    }
+  };
+
+  const prevSessionTimeLeftRef = useRef<number>(sessionTimeLeft);
+  useEffect(() => {
+    if (prevSessionTimeLeftRef.current > 10 && sessionTimeLeft <= 10 && sessionTimeLeft > 0) {
+      playWarningBeep();
+      addManualLog({
+        type: 'warning',
+        source: 'SECURITY',
+        message: 'Audible warning tone dispatched for final 10-second session termination window.'
+      });
+    }
+    prevSessionTimeLeftRef.current = sessionTimeLeft;
+  }, [sessionTimeLeft]);
+
   // --- Render Page Selector ---
   const renderTabContent = () => {
     switch (currentTab) {
@@ -1727,8 +1788,12 @@ export default function App() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 id="btn-logout-now"
-                onClick={handleLogout}
-                className="flex-1 px-4 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-semibold cursor-pointer transition-colors text-center font-mono"
+                onClick={() => setShowLogoutConfirm(true)}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all text-center font-mono ${
+                  sessionTimeLeft <= 10
+                    ? 'bg-rose-950/40 border border-rose-500/80 text-rose-300 hover:bg-rose-900/50 hover:text-rose-100 animate-pulse shadow-md shadow-rose-500/20'
+                    : 'bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 text-slate-400 hover:text-slate-200'
+                }`}
               >
                 Logout Now
               </button>
@@ -1739,6 +1804,119 @@ export default function App() {
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Extend Session</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Dialog */}
+      {showLogoutConfirm && (
+        <div 
+          id="logout-confirmation-modal" 
+          className={`fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[10000] transition-all duration-300 ease-in-out ${
+            isExitingLogoutConfirm ? 'opacity-0 pointer-events-none' : 'animate-in fade-in duration-200'
+          }`}
+        >
+          <div 
+            className={`w-full max-w-sm bg-slate-950 border border-rose-500/30 rounded-2xl p-6 space-y-5 shadow-2xl shadow-rose-500/10 text-slate-200 transition-all duration-300 transform ease-in-out ${
+              isExitingLogoutConfirm 
+                ? 'scale-90 opacity-0 -translate-y-2' 
+                : 'animate-in zoom-in-95 duration-150'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-sans font-bold text-base text-slate-100">Are you sure?</h4>
+                <p className="text-xs text-slate-400">Confirm session termination</p>
+              </div>
+            </div>
+
+            {/* Countdown Badge */}
+            <div className="flex items-center justify-between bg-slate-900/80 px-3.5 py-2 rounded-xl border border-slate-800 text-xs font-mono">
+              <span className="text-slate-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                <span>Session Time Remaining:</span>
+              </span>
+              <span className={`font-bold ${sessionTimeLeft <= 10 ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`}>
+                {sessionTimeLeft}s
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-300 font-sans leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-850">
+              Are you sure you want to log out now? Any unsaved administrative progress or active socket connections will be disconnected to ensure session security.
+            </p>
+
+            <button
+              id="btn-pause-logout-countdown"
+              onClick={handlePauseLogoutCountdown}
+              className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center gap-2 font-mono shadow-sm"
+            >
+              <Pause className="w-3.5 h-3.5 text-amber-400" />
+              <span>Pause Logout Countdown (+60s)</span>
+            </button>
+
+            <div className="flex items-center gap-2 font-mono text-xs">
+              <button
+                id="btn-confirm-logout"
+                onClick={() => {
+                  setIsExitingLogoutConfirm(true);
+                  setTimeout(() => {
+                    setShowLogoutConfirm(false);
+                    setIsExitingLogoutConfirm(false);
+                    setShowTimeoutWarning(false);
+                    handleLogout();
+                  }, 250);
+                }}
+                className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold cursor-pointer transition-colors shadow-lg shadow-rose-600/20 text-center flex items-center justify-center gap-2 relative"
+              >
+                {/* Circular progress indicator mapping final 10s */}
+                <div className="relative flex items-center justify-center shrink-0 w-5 h-5">
+                  <svg className="w-5 h-5 -rotate-90 transform" viewBox="0 0 24 24">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      className="stroke-rose-900/60"
+                      strokeWidth="2"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="9"
+                      className={`transition-all duration-300 ease-linear ${
+                        sessionTimeLeft <= 10 ? 'stroke-white' : 'stroke-rose-200/50'
+                      }`}
+                      strokeWidth="2.5"
+                      strokeDasharray={2 * Math.PI * 9}
+                      strokeDashoffset={
+                        (2 * Math.PI * 9) * (1 - Math.min(10, Math.max(0, sessionTimeLeft)) / 10)
+                      }
+                      strokeLinecap="round"
+                      fill="transparent"
+                    />
+                  </svg>
+                  {sessionTimeLeft <= 10 && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-mono font-bold leading-none text-white">
+                      {sessionTimeLeft}
+                    </span>
+                  )}
+                </div>
+                <span>Confirm Logout</span>
+              </button>
+              <button
+                id="btn-cancel-logout"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  setIsExitingLogoutConfirm(false);
+                }}
+                className="flex-1 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl font-semibold cursor-pointer transition-colors border border-slate-800 text-center"
+              >
+                Cancel
               </button>
             </div>
           </div>
