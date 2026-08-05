@@ -52,6 +52,7 @@ import BillingView from './components/BillingView';
 import HelpView from './components/HelpView';
 import EnvConfigManagerView from './components/EnvConfigManagerView';
 import GuruArchitectureVersionsView from './components/GuruArchitectureVersionsView';
+import { ModuleRegistrationArchitectureView } from './components/ModuleRegistrationArchitectureView';
 
 import { Sparkles, Key, Lock, AlertCircle, AlertTriangle, Bolt, Terminal, LayoutDashboard, ScrollText, Menu, Bot as BotIcon, ShieldAlert, Clock, Pause } from 'lucide-react';
 
@@ -1606,6 +1607,8 @@ export default function App() {
         return <EnvConfigManagerView />;
       case 'architecture-versions':
         return <GuruArchitectureVersionsView />;
+      case 'module-registration':
+        return <ModuleRegistrationArchitectureView />;
       default:
         return <DashboardView bots={bots} logs={logs} systemMetrics={systemMetrics} onBotClick={() => {}} onDeployClick={() => {}} onRefresh={triggerSync} />;
     }
@@ -1835,15 +1838,49 @@ export default function App() {
               </div>
             </div>
 
-            {/* Countdown Badge */}
-            <div className="flex items-center justify-between bg-slate-900/80 px-3.5 py-2 rounded-xl border border-slate-800 text-xs font-mono">
-              <span className="text-slate-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-slate-500" />
-                <span>Session Time Remaining:</span>
-              </span>
-              <span className={`font-bold ${sessionTimeLeft <= 10 ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`}>
-                {sessionTimeLeft}s
-              </span>
+            {/* Countdown Badge & Real-Time Progress Bar */}
+            <div className="space-y-2.5 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 font-mono">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Session Time Remaining:</span>
+                </span>
+                <span className={`font-bold font-mono px-2 py-0.5 rounded ${
+                  sessionTimeLeft <= 10 
+                    ? 'text-rose-400 bg-rose-950/60 border border-rose-500/30 animate-pulse' 
+                    : 'text-amber-400 bg-amber-950/40 border border-amber-500/20'
+                }`}>
+                  {sessionTimeLeft}s
+                </span>
+              </div>
+
+              {/* Real-time Progress Bar Indicator */}
+              <div className="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800 overflow-hidden relative shadow-inner">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-linear shadow-sm ${
+                    sessionTimeLeft <= 10 
+                      ? 'bg-gradient-to-r from-rose-600 via-rose-500 to-amber-500 shadow-rose-500/50 animate-pulse' 
+                      : sessionTimeLeft <= 30
+                      ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 shadow-amber-500/30'
+                      : 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-blue-500'
+                  }`}
+                  style={{ 
+                    width: `${Math.min(100, Math.max(0, sessionTimeLeft <= 10 ? (sessionTimeLeft / 10) * 100 : (sessionTimeLeft / SESSION_DURATION) * 100))}%` 
+                  }}
+                />
+              </div>
+
+              {/* Urgency Helper Label */}
+              <div className="flex justify-between items-center text-[10px] text-slate-500 pt-0.5">
+                <span>0s (Timeout)</span>
+                {sessionTimeLeft <= 10 && (
+                  <span className="text-rose-400 font-semibold animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
+                    Critical Countdown Active
+                  </span>
+                )}
+                <span>{sessionTimeLeft > 10 ? `${sessionTimeLeft}s` : `${sessionTimeLeft}s / 10s`}</span>
+              </div>
             </div>
 
             <p className="text-xs text-slate-300 font-sans leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-850">

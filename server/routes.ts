@@ -23,7 +23,11 @@ import {
   DeploymentValidatorController,
   EnvConfigController,
   EngineeringGovernanceController,
-  BotAdapterController
+  BotAdapterController,
+  ModuleRegistrationController,
+  PlatformStateController,
+  PluginManagementController,
+  ToolController
 } from "./controllers";
 
 const router = Router();
@@ -480,6 +484,9 @@ v1Router.get("/intelligence/overview", apiGuard, IntelligenceCenterController.ge
 v1Router.get("/intelligence/services", apiGuard, IntelligenceCenterController.getServices);
 v1Router.post("/intelligence/register-module", apiGuard, IntelligenceCenterController.registerModule);
 v1Router.get("/intelligence/telemetry", apiGuard, IntelligenceCenterController.getTelemetry);
+v1Router.get("/intelligence/telemetry/audit", apiGuard, IntelligenceCenterController.getTelemetryAudit);
+v1Router.get("/intelligence/telemetry/validation", apiGuard, IntelligenceCenterController.getTelemetryValidation);
+v1Router.post("/intelligence/telemetry/reconcile", apiGuard, IntelligenceCenterController.reconcileTelemetry);
 v1Router.get("/intelligence/engineering-report", apiGuard, IntelligenceCenterController.getEngineeringReport);
 v1Router.post("/intelligence/safe-auto-fix", apiGuard, IntelligenceCenterController.executeSafeAutoFix);
 v1Router.get("/intelligence/verification-details", apiGuard, IntelligenceCenterController.getVerificationDetails);
@@ -552,8 +559,25 @@ v1Router.delete("/users/:id", apiGuard, UserController.deleteUser);
 // ============================================================================
 // 9. SYSTEM LOGS & AI TERMINAL COPILOT
 // ============================================================================
+v1Router.get("/logs", apiGuard, LogController.getLogs);
 v1Router.post("/logs", apiGuard, LogController.createLog);
 v1Router.delete("/logs", apiGuard, LogController.clearLogs);
+v1Router.get("/logs/architecture-analysis", apiGuard, LogController.getArchitectureAnalysis);
+v1Router.get("/logs/diagnostics", apiGuard, LogController.getDiagnostics);
+v1Router.get("/logs/alerts", apiGuard, LogController.getAlerts);
+v1Router.get("/logs/relationships", apiGuard, LogController.getRelationships);
+v1Router.post("/logs/relationship", apiGuard, LogController.recordRelationship);
+v1Router.get("/logs/export", apiGuard, LogController.exportLogs);
+v1Router.post("/logs/rotate", apiGuard, LogController.rotateLogs);
+
+// ============================================================================
+// 10. AI CORE TOOL INFRASTRUCTURE & TOOL REGISTRY
+// ============================================================================
+v1Router.get("/tools", apiGuard, ToolController.getTools);
+v1Router.get("/tools/progress", apiGuard, ToolController.getToolProgress);
+v1Router.get("/tools/:toolId", apiGuard, ToolController.getToolById);
+v1Router.post("/tools/:toolId/execute", apiGuard, ToolController.executeTool);
+v1Router.put("/tools/:toolId/status", apiGuard, ToolController.updateToolStatus);
 
 v1Router.post("/copilot/chat", rateLimiter(30, 60000), CopilotController.chat);
 v1Router.get("/copilot/memory", apiGuard, CopilotController.getMemories);
@@ -648,6 +672,50 @@ v1Router.post("/bots/adapters/:botId/connect", apiGuard, BotAdapterController.co
 v1Router.post("/bots/adapters/:botId/disconnect", apiGuard, BotAdapterController.disconnectAdapter);
 v1Router.post("/bots/adapters/:botId/send", apiGuard, BotAdapterController.sendAdapterMessage);
 v1Router.post("/bots/adapters/:botId/webhook", apiGuard, BotAdapterController.handleAdapterWebhook);
+
+// ============================================================================
+// 13. MODULE REGISTRATION & AI DISCOVERY SYSTEM ROUTES
+// ============================================================================
+v1Router.get("/modules", apiGuard, ModuleRegistrationController.getModules);
+v1Router.get("/modules/services", apiGuard, ModuleRegistrationController.getServices);
+v1Router.post("/modules/services/invoke", apiGuard, ModuleRegistrationController.invokeService);
+v1Router.get("/modules/capabilities", apiGuard, ModuleRegistrationController.getCapabilities);
+v1Router.get("/modules/events", apiGuard, ModuleRegistrationController.getEvents);
+v1Router.get("/modules/knowledge-graph", apiGuard, ModuleRegistrationController.getKnowledgeGraph);
+v1Router.post("/modules/audit", apiGuard, ModuleRegistrationController.runAudit);
+v1Router.post("/modules/ai-query", apiGuard, ModuleRegistrationController.queryAI);
+v1Router.post("/modules/security-check", apiGuard, ModuleRegistrationController.runSecurityCheck);
+v1Router.post("/modules/reconcile", apiGuard, ModuleRegistrationController.reconcileModules);
+v1Router.get("/modules/consistency", apiGuard, ModuleRegistrationController.checkConsistency);
+v1Router.get("/modules/diagnostics", apiGuard, ModuleRegistrationController.generateDiagnostics);
+v1Router.get("/modules/lifecycle-audit", apiGuard, ModuleRegistrationController.getLifecycleAudit);
+v1Router.get("/modules/:id", apiGuard, ModuleRegistrationController.getModuleById);
+
+// ============================================================================
+// 14. PLATFORM STATE INTELLIGENCE & REASONING ROUTES
+// ============================================================================
+v1Router.get("/platform-state", apiGuard, PlatformStateController.getPlatformState);
+v1Router.get("/platform-state/health", apiGuard, PlatformStateController.getHealthMetrics);
+v1Router.get("/platform-state/changes", apiGuard, PlatformStateController.getRecentChanges);
+v1Router.get("/platform-state/snapshots", apiGuard, PlatformStateController.getSnapshots);
+v1Router.post("/platform-state/snapshots", apiGuard, PlatformStateController.createManualSnapshot);
+v1Router.get("/platform-state/snapshots/compare", apiGuard, PlatformStateController.compareSnapshots);
+v1Router.post("/platform-state/reasoning", apiGuard, PlatformStateController.queryReasoning);
+v1Router.post("/platform-state/disable", apiGuard, PlatformStateController.toggleModuleDisabled);
+
+// ============================================================================
+// 15. PLUGIN MANAGEMENT & INTERACTION GRAPH ROUTES
+// ============================================================================
+v1Router.get("/plugins", apiGuard, PluginManagementController.listPlugins);
+v1Router.get("/plugins/catalog", apiGuard, PluginManagementController.discoverCatalog);
+v1Router.post("/plugins/install", apiGuard, PluginManagementController.installPlugin);
+v1Router.post("/plugins/:id/uninstall", apiGuard, PluginManagementController.uninstallPlugin);
+v1Router.post("/plugins/:id/enable", apiGuard, PluginManagementController.enablePlugin);
+v1Router.post("/plugins/:id/disable", apiGuard, PluginManagementController.disablePlugin);
+v1Router.post("/plugins/:id/reload", apiGuard, PluginManagementController.reloadPlugin);
+v1Router.get("/plugins/interaction-graph", apiGuard, PluginManagementController.getInteractionGraph);
+v1Router.post("/plugins/ai-query", apiGuard, PluginManagementController.queryAIPlugins);
+
 
 // ============================================================================
 // API ROUTER REGISTRATION (NON-BREAKING DUAL MOUNTING FOR /api/v1 AND /api)

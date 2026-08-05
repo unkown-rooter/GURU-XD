@@ -1375,9 +1375,19 @@ export class UserController {
 
 export class LogController {
   public static createLog(req: Request, res: Response) {
-    const { type, source, message } = req.body;
-    dbService.addLog(type, source, message);
-    res.json({ success: true, logs: dbService.read().logs });
+    const { type, source, message, level, category, metadata } = req.body;
+    dbService.addLog(type || 'info', source || 'API', message);
+    
+    // Send to structured LoggingService
+    const { loggingService } = require('./services/loggingService');
+    const entry = loggingService.log(
+      level || (type === 'error' ? 'error' : 'info'),
+      category || 'SYSTEM',
+      message,
+      metadata,
+      { serviceSource: source || 'API' }
+    );
+    res.json({ success: true, entry, logs: dbService.read().logs });
   }
 
   public static clearLogs(req: Request, res: Response) {
@@ -1385,6 +1395,166 @@ export class LogController {
     db.logs = [];
     dbService.write(db);
     res.json({ success: true, logs: db.logs });
+  }
+
+  public static async getLogs(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const { category, level, minLevel, serviceSource, searchQuery, limit } = req.query;
+      const filter = {
+        category: category as any,
+        level: level as any,
+        minLevel: minLevel as any,
+        serviceSource: serviceSource as string,
+        searchQuery: searchQuery as string
+      };
+      const logs = loggingService.queryLogs(filter, limit ? parseInt(limit as string, 10) : 200);
+      res.json({ success: true, count: logs.length, logs });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getArchitectureAnalysis(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const analysis = loggingService.generateSystemArchitectureLogSummary();
+      res.json({ success: true, analysis });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getRelationships(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const relationships = loggingService.getComponentRelationships();
+      res.json({ success: true, count: relationships.length, relationships });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async recordRelationship(req: Request, res: Response) {
+    try {
+      const { sourceType, sourceName, targetType, targetName, relationshipType, metadata } = req.body;
+      const { loggingService } = await import('./services/loggingService');
+      const rel = loggingService.logComponentRelationship(sourceType, sourceName, targetType, targetName, relationshipType, metadata);
+      res.json({ success: true, relationship: rel });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async exportLogs(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const format = (req.query.format as string) || 'json';
+      if (format === 'csv') {
+        const csv = loggingService.exportLogsCSV();
+        res.setHeader('Content-Type', 'text/csv');
+        return res.send(csv);
+      }
+      const json = loggingService.exportLogsJSON();
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(json);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getDiagnostics(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const diagnostics = loggingService.runDiagnostics();
+      res.json({ success: true, diagnostics });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getAlerts(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const alerts = loggingService.getActiveAlerts();
+      res.json({ success: true, count: alerts.length, alerts });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async rotateLogs(req: Request, res: Response) {
+    try {
+      const { loggingService } = await import('./services/loggingService');
+      const chunk = loggingService.rotateLogs();
+      res.json({ success: true, chunk });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+}
+
+export class ToolController {
+  public static async getTools(req: Request, res: Response) {
+    try {
+      const { toolRegistry } = await import('./tools');
+      const tools = toolRegistry.getAllTools();
+      res.json({ success: true, count: tools.length, tools });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getToolProgress(req: Request, res: Response) {
+    try {
+      const { toolRegistry } = await import('./tools');
+      const report = toolRegistry.getToolProgressReport();
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async getToolById(req: Request, res: Response) {
+    try {
+      const { toolId } = req.params;
+      const { toolRegistry } = await import('./tools');
+      const tool = toolRegistry.getTool(toolId);
+      if (!tool) {
+        return res.status(404).json({ success: false, error: `Tool [${toolId}] not found.` });
+      }
+      const { executor, ...rest } = tool;
+      res.json({ success: true, tool: rest });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async executeTool(req: Request, res: Response) {
+    try {
+      const { toolId } = req.params;
+      const { params, context } = req.body;
+      const { toolRegistry } = await import('./tools');
+      const result = await toolRegistry.executeTool(toolId, params || {}, context);
+      res.json({ success: result.success, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  public static async updateToolStatus(req: Request, res: Response) {
+    try {
+      const { toolId } = req.params;
+      const { status } = req.body;
+      const { toolRegistry } = await import('./tools');
+      const updated = toolRegistry.setToolStatus(toolId, status);
+      if (!updated) {
+        return res.status(404).json({ success: false, error: `Tool [${toolId}] not found.` });
+      }
+      res.json({ success: true, message: `Tool [${toolId}] status updated to [${status}].` });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
   }
 }
 
@@ -2878,12 +3048,44 @@ export class IntelligenceCenterController {
 
   public static async getTelemetry(req: Request, res: Response) {
     try {
+      const { unifiedTelemetryEngine } = await import("./services/unifiedTelemetryEngine");
       const { serviceRegistry } = await import("./serviceRegistry");
-      const telemetry = serviceRegistry.getRecentTelemetry();
+      const telemetry = unifiedTelemetryEngine.getTelemetryBuffer();
       const events = serviceRegistry.getRecentEvents();
-      res.json({ success: true, telemetry, events });
+      const audit = unifiedTelemetryEngine.generateCoverageReport();
+      res.json({ success: true, telemetry, events, audit });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err?.message || 'Failed to fetch telemetry' });
+    }
+  }
+
+  public static async getTelemetryAudit(req: Request, res: Response) {
+    try {
+      const { unifiedTelemetryEngine } = await import("./services/unifiedTelemetryEngine");
+      const report = unifiedTelemetryEngine.generateCoverageReport();
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to generate telemetry coverage audit' });
+    }
+  }
+
+  public static async getTelemetryValidation(req: Request, res: Response) {
+    try {
+      const { unifiedTelemetryEngine } = await import("./services/unifiedTelemetryEngine");
+      const report = unifiedTelemetryEngine.generateValidationReport();
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to generate telemetry validation report' });
+    }
+  }
+
+  public static async reconcileTelemetry(req: Request, res: Response) {
+    try {
+      const { unifiedTelemetryEngine } = await import("./services/unifiedTelemetryEngine");
+      const result = unifiedTelemetryEngine.reconcileTelemetryFeeds();
+      res.json({ success: true, result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || 'Failed to reconcile telemetry feeds' });
     }
   }
 
@@ -4029,6 +4231,408 @@ export class BotAdapterController {
     }
   }
 }
+
+export class ModuleRegistrationController {
+  public static async getModules(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const modules = moduleRegistry.getAllRegisteredModules();
+      return sendApiResponse(res, 200, { modules, count: modules.length }, "Registered modules inventory retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch module inventory.");
+    }
+  }
+
+  public static async getModuleById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { moduleRegistry } = await import('./modules');
+      const mod = moduleRegistry.getModuleMetadata(id);
+      if (!mod) {
+        return sendApiResponse(res, 404, { error: `Module "${id}" not found.` }, "Module not found.");
+      }
+      return sendApiResponse(res, 200, { module: mod }, "Module metadata retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch module.");
+    }
+  }
+
+  public static async getServices(req: Request, res: Response) {
+    try {
+      const { serviceRegistryEngine } = await import('./modules');
+      const services = serviceRegistryEngine.getAllServices();
+      return sendApiResponse(res, 200, { services, count: services.length }, "Registered module services retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch service registry.");
+    }
+  }
+
+  public static async invokeService(req: Request, res: Response) {
+    try {
+      const { serviceKey, params } = req.body;
+      if (!serviceKey) return sendApiResponse(res, 400, { error: "serviceKey is required" }, "Bad request.");
+      const { serviceRegistryEngine } = await import('./modules');
+      const result = await serviceRegistryEngine.invokeService(serviceKey, params);
+      return sendApiResponse(res, result.success ? 200 : 400, result, "Service invoked.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to invoke service.");
+    }
+  }
+
+  public static async getCapabilities(req: Request, res: Response) {
+    try {
+      const { capabilityRegistry } = await import('./modules');
+      const capabilities = capabilityRegistry.getAllCapabilities();
+      return sendApiResponse(res, 200, { capabilities, count: capabilities.length }, "Registered capabilities retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch capability registry.");
+    }
+  }
+
+  public static async getEvents(req: Request, res: Response) {
+    try {
+      const { eventRegistryEngine } = await import('./modules');
+      const definitions = eventRegistryEngine.getAllEventDefinitions();
+      const recentEvents = eventRegistryEngine.getRecentEvents(30);
+      return sendApiResponse(res, 200, { definitions, recentEvents }, "Module event definitions and history retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch event registry.");
+    }
+  }
+
+  public static async getKnowledgeGraph(req: Request, res: Response) {
+    try {
+      const { knowledgeGraphBuilder, moduleRegistry } = await import('./modules');
+      const graph = knowledgeGraphBuilder.rebuildGraph(moduleRegistry.getAllRegisteredModules());
+      return sendApiResponse(res, 200, { graph }, "Module Knowledge Graph retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to generate Knowledge Graph.");
+    }
+  }
+
+  public static async runAudit(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const report = await moduleRegistry.runFullHealthAudit();
+      return sendApiResponse(res, 200, { report }, "Automated module audit completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to run module audit.");
+    }
+  }
+
+  public static async queryAI(req: Request, res: Response) {
+    try {
+      const { query } = req.body;
+      if (!query) return sendApiResponse(res, 400, { error: "query text is required" }, "Bad request.");
+      const { moduleRegistry } = await import('./modules');
+      const result = moduleRegistry.queryAI(query);
+      return sendApiResponse(res, 200, { discovery: result }, "AI discovery query completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to execute AI discovery query.");
+    }
+  }
+
+  public static async runSecurityCheck(req: Request, res: Response) {
+    try {
+      const { manifest } = req.body;
+      if (!manifest) return sendApiResponse(res, 400, { error: "manifest is required" }, "Bad request.");
+      const { SecurityValidator } = await import('./modules');
+      const result = SecurityValidator.validateModuleSecurity(manifest);
+      return sendApiResponse(res, 200, { validation: result }, "Security check completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to execute security check.");
+    }
+  }
+
+  public static async reconcileModules(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const report = await moduleRegistry.reconcileModules();
+      return sendApiResponse(res, 200, { report }, "Module reconciliation process completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to reconcile platform modules.");
+    }
+  }
+
+  public static async checkConsistency(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const result = moduleRegistry.checkConsistency();
+      return sendApiResponse(res, 200, { consistency: result }, "Platform module consistency check completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to perform consistency check.");
+    }
+  }
+
+  public static async generateDiagnostics(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const report = await moduleRegistry.generateDiagnostics();
+      return sendApiResponse(res, 200, { diagnostics: report }, "Platform diagnostic report generated.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to generate diagnostic report.");
+    }
+  }
+
+  public static async getLifecycleAudit(req: Request, res: Response) {
+    try {
+      const { moduleRegistry } = await import('./modules');
+      const report = await moduleRegistry.generateFullLifecycleAudit();
+      return sendApiResponse(res, 200, { audit: report }, "Complete 7-stage module lifecycle audit report generated.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to generate lifecycle audit report.");
+    }
+  }
+}
+
+// ============================================================================
+// PLUGIN MANAGEMENT CONTROLLER
+// ============================================================================
+
+export class PluginManagementController {
+  public static async listPlugins(req: Request, res: Response) {
+    try {
+      const { pluginManager } = await import('./modules');
+      const plugins = pluginManager.getAllPlugins();
+      return sendApiResponse(res, 200, { plugins, count: plugins.length }, "Installed plugins retrieved successfully.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to retrieve plugins.");
+    }
+  }
+
+  public static async discoverCatalog(req: Request, res: Response) {
+    try {
+      const { pluginManager } = await import('./modules');
+      const catalog = pluginManager.discoverPlugins();
+      return sendApiResponse(res, 200, { catalog, count: catalog.length }, "Plugin catalog discovered.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to discover plugin catalog.");
+    }
+  }
+
+  public static async installPlugin(req: Request, res: Response) {
+    try {
+      const { manifest } = req.body;
+      if (!manifest) return sendApiResponse(res, 400, { error: "manifest is required" }, "Bad request.");
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.installPlugin(manifest, true);
+      if (!result.success) {
+        return sendApiResponse(res, 400, { error: result.error }, "Plugin installation failed.");
+      }
+      return sendApiResponse(res, 201, { plugin: result.plugin }, "Plugin installed and enabled successfully.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to install plugin.");
+    }
+  }
+
+  public static async uninstallPlugin(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.uninstallPlugin(id);
+      if (!result.success) {
+        return sendApiResponse(res, 400, { error: result.error }, "Plugin uninstall failed.");
+      }
+      return sendApiResponse(res, 200, { pluginId: id }, `Plugin "${id}" uninstalled successfully.`);
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to uninstall plugin.");
+    }
+  }
+
+  public static async enablePlugin(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.enablePlugin(id);
+      if (!result.success) {
+        return sendApiResponse(res, 400, { error: result.error }, "Plugin enable failed.");
+      }
+      return sendApiResponse(res, 200, { pluginId: id }, `Plugin "${id}" enabled successfully.`);
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to enable plugin.");
+    }
+  }
+
+  public static async disablePlugin(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.disablePlugin(id, reason);
+      if (!result.success) {
+        return sendApiResponse(res, 400, { error: result.error }, "Plugin disable failed.");
+      }
+      return sendApiResponse(res, 200, { pluginId: id }, `Plugin "${id}" disabled successfully.`);
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to disable plugin.");
+    }
+  }
+
+  public static async reloadPlugin(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { config } = req.body;
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.reloadPlugin(id, config);
+      if (!result.success) {
+        return sendApiResponse(res, 400, { error: result.error }, "Plugin reload failed.");
+      }
+      return sendApiResponse(res, 200, { plugin: result.plugin }, `Plugin "${id}" reloaded successfully.`);
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to reload plugin.");
+    }
+  }
+
+  public static async getInteractionGraph(req: Request, res: Response) {
+    try {
+      const { pluginManager, moduleRegistry } = await import('./modules');
+      const modules = moduleRegistry.getAllRegisteredModules();
+      const graph = pluginManager.buildInteractionGraph(modules);
+      return sendApiResponse(res, 200, { graph }, "Platform Interaction Graph generated successfully.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to generate Interaction Graph.");
+    }
+  }
+
+  public static async queryAIPlugins(req: Request, res: Response) {
+    try {
+      const { query } = req.body;
+      if (!query) return sendApiResponse(res, 400, { error: "query parameter required" }, "Bad request.");
+      const { pluginManager } = await import('./modules');
+      const result = pluginManager.answerAIPluginQuery(query);
+      return sendApiResponse(res, 200, { answer: result.answer, plugins: result.pluginsList }, "AI plugin query processed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to process AI plugin query.");
+    }
+  }
+}
+
+
+// ============================================================================
+// PLATFORM STATE INTELLIGENCE CONTROLLER
+// ============================================================================
+
+export class PlatformStateController {
+  public static async getPlatformState(req: Request, res: Response) {
+    try {
+      const { platformStateManager, moduleRegistry } = await import('./modules');
+      const state = platformStateManager.syncPlatformState(() => moduleRegistry.getAllRegisteredModules());
+      return sendApiResponse(res, 200, { platformState: state }, "Live Platform State Intelligence summary retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch platform state.");
+    }
+  }
+
+  public static async getHealthMetrics(req: Request, res: Response) {
+    try {
+      const { healthMonitor, moduleRegistry } = await import('./modules');
+      const metrics = healthMonitor.calculateHealthMetrics(moduleRegistry.getAllRegisteredModules());
+      return sendApiResponse(res, 200, { healthMetrics: metrics }, "Platform state health metrics retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to calculate health metrics.");
+    }
+  }
+
+  public static async getRecentChanges(req: Request, res: Response) {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const { changeTracker } = await import('./modules');
+      const entries = changeTracker.getRecentChanges(limit);
+      return sendApiResponse(res, 200, { changes: entries, count: entries.length }, "Platform change entries retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch platform change log.");
+    }
+  }
+
+  public static async getSnapshots(req: Request, res: Response) {
+    try {
+      const { startupSnapshotManager } = await import('./modules');
+      const snapshots = startupSnapshotManager.getSnapshots();
+      return sendApiResponse(res, 200, { snapshots, count: snapshots.length }, "Platform state snapshots retrieved.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to fetch platform snapshots.");
+    }
+  }
+
+  public static async queryReasoning(req: Request, res: Response) {
+    try {
+      const { query } = req.body;
+      if (!query) return sendApiResponse(res, 400, { error: "query is required" }, "Bad request.");
+      const { aiCoreReasoningEngine, moduleRegistry } = await import('./modules');
+      const result = aiCoreReasoningEngine.reasonAboutPlatform(query, moduleRegistry.getAllRegisteredModules());
+      return sendApiResponse(res, 200, { reasoning: result }, "AI Core operational reasoning completed.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to execute AI Core operational reasoning.");
+    }
+  }
+
+  public static async toggleModuleDisabled(req: Request, res: Response) {
+    try {
+      const { moduleId, disabled, reason } = req.body;
+      if (!moduleId) return sendApiResponse(res, 400, { error: "moduleId is required" }, "Bad request.");
+      const { platformStateManager, moduleRegistry } = await import('./modules');
+      platformStateManager.setModuleDisabled(moduleId, !!disabled);
+      platformStateManager.recordStateChange({
+        category: 'LIFECYCLE',
+        severity: disabled ? 'WARNING' : 'INFO',
+        eventType: disabled ? 'module.disabled' : 'module.enabled',
+        description: `Module ${moduleId} ${disabled ? 'disabled' : 'enabled'}${reason ? ': ' + reason : ''}`,
+        sourceModuleId: moduleId,
+        registeredModulesGetter: () => moduleRegistry.getAllRegisteredModules()
+      });
+      const state = platformStateManager.syncPlatformState(() => moduleRegistry.getAllRegisteredModules());
+      return sendApiResponse(res, 200, { platformState: state }, `Module "${moduleId}" disabled state updated to ${disabled}.`);
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to toggle module disabled state.");
+    }
+  }
+
+  public static async createManualSnapshot(req: Request, res: Response) {
+    try {
+      const { tag } = req.body;
+      const { platformStateManager, healthMonitor, moduleRegistry, serviceRegistryEngine, eventRegistryEngine, startupSnapshotManager } = await import('./modules');
+      const modules = moduleRegistry.getAllRegisteredModules();
+      const healthMetrics = healthMonitor.calculateHealthMetrics(modules);
+      let totalRoutes = 0;
+      let totalDependencies = 0;
+      modules.forEach(m => {
+        totalRoutes += m.manifest.routes.length;
+        totalDependencies += m.manifest.dependencies.length;
+      });
+      const snapshot = startupSnapshotManager.createSnapshot({
+        type: 'MANUAL',
+        platformVersion: '2.5.0-PROD',
+        uptimeSeconds: platformStateManager.getUptimeSeconds(),
+        healthMetrics,
+        modules,
+        servicesCount: serviceRegistryEngine.getAllServices().length,
+        routesCount: totalRoutes,
+        eventsCount: eventRegistryEngine.getAllEventDefinitions().length,
+        dependenciesCount: totalDependencies,
+        configSummary: { tag: tag || 'manual-ui' }
+      });
+      return sendApiResponse(res, 200, { snapshot }, "Manual platform state snapshot created successfully.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to create platform state snapshot.");
+    }
+  }
+
+  public static async compareSnapshots(req: Request, res: Response) {
+    try {
+      const { snapshotId1, snapshotId2 } = req.query;
+      if (!snapshotId1 || !snapshotId2) {
+        return sendApiResponse(res, 400, { error: "snapshotId1 and snapshotId2 parameters required" }, "Bad request.");
+      }
+      const { startupSnapshotManager } = await import('./modules');
+      const diff = startupSnapshotManager.compareSnapshots(snapshotId1 as string, snapshotId2 as string);
+      return sendApiResponse(res, 200, { diff }, "Platform snapshot diff generated.");
+    } catch (err: any) {
+      return sendApiResponse(res, 500, { error: err.message }, "Failed to compare snapshots.");
+    }
+  }
+}
+
+
 
 
 

@@ -99,6 +99,7 @@ export default function Sidebar({
     {
       title: 'DEVELOPER TERMINAL',
       items: [
+        { id: 'module-registration', label: 'Module Registration', icon: Cpu, badge: 'AI-REG' },
         { id: 'terminal', label: 'Live Terminal', icon: Terminal },
         { id: 'logs', label: 'Live Logs', icon: ScrollText },
         { id: 'plugins', label: 'Plugin Marketplace', icon: Blocks },

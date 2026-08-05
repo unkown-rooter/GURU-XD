@@ -9,6 +9,7 @@ import {
 import { securityAnalyst } from './securityAnalyst';
 import { behaviorEngine } from './behaviorEngine';
 import { memoryService } from './services/memoryService';
+import { unifiedTelemetryEngine } from './services/unifiedTelemetryEngine';
 
 // ============================================================================
 // VERSION 3 INTELLIGENCE CENTER TYPES & INTERFACES
@@ -214,7 +215,11 @@ export class IntelligenceCenterEngine {
     // 5. Trust Index Calculation
     const trustIndexPct = Math.max(10, Math.round(100 - overallRiskScorePct * 0.6));
 
-    // 6. Generate Adaptive Executive Recommendations
+    // 6. Real-Time Telemetry Audit Integration
+    const telemetryAudit = unifiedTelemetryEngine.generateCoverageReport();
+    const activeTelemetryBuffer = unifiedTelemetryEngine.getTelemetryBuffer();
+
+    // 7. Generate Adaptive Executive Recommendations
     const recommendations: string[] = [];
     if (highRiskIncidents.length > 0) {
       recommendations.push(`Resolve ${highRiskIncidents.length} active high-risk incident(s) via AI Security Analyst.`);
@@ -222,8 +227,8 @@ export class IntelligenceCenterEngine {
     if (platformHealthScorePct < 95) {
       recommendations.push('Run health diagnostic scan on degraded service nodes.');
     }
-    recommendations.push('Enforce version-change telemetry guardrails for future service updates.');
-    recommendations.push(`Continuously monitoring ${services.length} registered modular services across ${discoveredCapabilities.length} capabilities.`);
+    recommendations.push(`Real-time telemetry coverage active at ${telemetryAudit.overallCoverageScorePct}% across all ${telemetryAudit.totalSubsystemsCount} subsystems.`);
+    recommendations.push(`Continuously monitoring ${services.length} registered modular services across ${discoveredCapabilities.length} capabilities with ${activeTelemetryBuffer.length} active telemetry records.`);
 
     return {
       platformHealthScorePct,
@@ -233,9 +238,9 @@ export class IntelligenceCenterEngine {
       totalRegisteredServicesCount: services.length,
       discoveredCapabilities,
       correlatedVersionIncidents,
-      executiveSummary: `GURU-XD Intelligence Center is actively orchestrating ${services.length} registered services covering ${discoveredCapabilities.length} platform capabilities. System operating with ${platformHealthScorePct}% overall health score.`,
+      executiveSummary: `GURU-XD Intelligence Center is actively orchestrating ${services.length} registered services covering ${discoveredCapabilities.length} platform capabilities. Unified Telemetry System operating with ${telemetryAudit.overallCoverageScorePct}% 32-subsystem coverage score.`,
       recommendations,
-      telemetryIngestionRatePerMin: 240,
+      telemetryIngestionRatePerMin: activeTelemetryBuffer.length * 2,
       lastAdaptationScanAt: new Date().toISOString()
     };
   }

@@ -5,10 +5,20 @@ import { createServer as createViteServer } from "vite";
 import router from "./server/routes";
 import { requestLogger, errorHandler } from "./server/middleware";
 import { BotDaemonService } from "./server/services";
+import { bootstrapModuleSystem } from "./server/modules";
+import { initializeGURUXDToolInfrastructure } from "./server/tools";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Bootstrap production-grade Module Registration & AI Discovery System
+  await bootstrapModuleSystem().catch(err => {
+    console.error("[MODULE REGISTRY] Failed to bootstrap module system:", err);
+  });
+
+  // Initialize Tooling Infrastructure
+  initializeGURUXDToolInfrastructure();
 
   // JSON Body Parser
   app.use(express.json());
