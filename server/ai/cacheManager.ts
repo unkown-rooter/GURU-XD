@@ -1,5 +1,7 @@
 import { AICacheEntry } from "./types";
 import { DatabaseService } from "../db";
+import { ResponseComposer } from "./responseComposer";
+import { COPILOT_AGENTS } from "../copilotEngine";
 
 /**
  * Cache Manager for AI Responses and Internal Memory Fallback Synthesis
@@ -166,8 +168,6 @@ export class CacheManager {
    * when external AI models are unreachable or fail retries.
    */
   public synthesizeInternalFallback(prompt: string, agentName: string, domain: string): string {
-    const { ResponseComposer } = require("./responseComposer");
-    const { COPILOT_AGENTS } = require("../copilotEngine");
     const composer = ResponseComposer.getInstance();
     const matchedAgent = COPILOT_AGENTS.find((a: any) => a.name === agentName) || COPILOT_AGENTS[0];
     return composer.synthesizeConversationalAnswer(prompt, matchedAgent);

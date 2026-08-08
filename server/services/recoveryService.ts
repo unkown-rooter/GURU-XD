@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { AppEventBus } from './eventBus';
 import { BackupService, BackupSnapshot } from './backupService';
 import { DatabaseService } from '../db';
@@ -129,9 +130,9 @@ export class RecoveryService {
         // Decrypt payload
         const parts = rawData.split(':');
         if (parts.length === 2) {
-          const key = require('crypto').createHash('sha256').update('GURU_BACKUP_SECRET_KEY_V9').digest();
+          const key = crypto.createHash('sha256').update('GURU_BACKUP_SECRET_KEY_V9').digest();
           const iv = Buffer.from(parts[0], 'hex');
-          const decipher = require('crypto').createDecipheriv('aes-256-cbc', key, iv);
+          const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
           let decrypted = decipher.update(parts[1], 'hex', 'utf8');
           decrypted += decipher.final('utf8');
           rawData = decrypted;

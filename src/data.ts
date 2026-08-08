@@ -494,12 +494,16 @@ export const INITIAL_LOGS: LogLine[] = [
   { id: 'log-1', timestamp: '16:11:01', type: 'info', message: 'System initialization initiated.', source: 'SYSTEM' },
   { id: 'log-2', timestamp: '16:11:02', type: 'success', message: 'Connected to WhatsApp Gateway API successfully.', source: 'GURU-MD' },
   { id: 'log-3', timestamp: '16:11:03', type: 'info', message: 'Loaded 154 custom commands.', source: 'GURU-MD' },
+  { id: 'log-mtls-1', timestamp: '16:11:04', type: 'mtls', message: '[mTLS SUCCESS] Handshake established: container-gateway-01 ➔ container-ai-core-02 (Cipher: TLS_AES_256_GCM_SHA384, Latency: 0.8ms, Cert: sha256:8f4a...e12c)', source: 'mTLS_BOUNDARIES' },
   { id: 'log-4', timestamp: '16:11:05', type: 'info', message: 'Telegram bot TG-SpamShield-Pro polling started.', source: 'TG-SPAM' },
+  { id: 'log-mtls-2', timestamp: '16:11:08', type: 'mtls', message: '[mTLS SUCCESS] Handshake established: container-ai-core-02 ➔ container-db-vault-01 (Zero-Trust Verified, Cert: sha256:92cb...d451)', source: 'mTLS_BOUNDARIES' },
   { id: 'log-5', timestamp: '16:11:10', type: 'command', message: 'User @alex_dev triggered command [.alive] in Group DevChat-GURU.', source: 'GURU-MD' },
   { id: 'log-6', timestamp: '16:11:11', type: 'success', message: 'Response to [.alive] dispatched in 42ms.', source: 'GURU-MD' },
   { id: 'log-7', timestamp: '16:11:15', type: 'info', message: 'Plugin Gemini Auto-Responder hot-loaded (v2.0.1).', source: 'SYSTEM' },
+  { id: 'log-mtls-3', timestamp: '16:11:18', type: 'mtls', message: '[mTLS SUCCESS] Mutual TLS re-keying completed for socket: wss://node-cluster-03:8443 (Active Nodes: 12)', source: 'mTLS_BOUNDARIES' },
   { id: 'log-8', timestamp: '16:11:20', type: 'command', message: 'User @guest_test triggered command [.help] in Private Chat.', source: 'GURU-MD' },
   { id: 'log-9', timestamp: '16:11:25', type: 'error', message: 'Socket connection timed out with backup node.', source: 'TG-ECON' },
+  { id: 'log-mtls-4', timestamp: '16:11:26', type: 'mtls', message: '[mTLS FAILED] Handshake rejected: node-untrusted-99 ➔ container-ai-core-02 (Reason: Untrusted Node Identity / Cert Fingerprint Mismatch)', source: 'mTLS_BOUNDARIES' },
   { id: 'log-10', timestamp: '16:11:26', type: 'info', message: 'Retrying secondary broker sync in 5000ms...', source: 'TG-ECON' }
 ];
 

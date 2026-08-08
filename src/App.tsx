@@ -53,6 +53,9 @@ import HelpView from './components/HelpView';
 import EnvConfigManagerView from './components/EnvConfigManagerView';
 import GuruArchitectureVersionsView from './components/GuruArchitectureVersionsView';
 import { ModuleRegistrationArchitectureView } from './components/ModuleRegistrationArchitectureView';
+import AIPlatformContextView from './components/AIPlatformContextView';
+import ListenerManagementView from './components/ListenerManagementView';
+import LiveTerminalView from './components/LiveTerminalView';
 
 import { Sparkles, Key, Lock, AlertCircle, AlertTriangle, Bolt, Terminal, LayoutDashboard, ScrollText, Menu, Bot as BotIcon, ShieldAlert, Clock, Pause } from 'lucide-react';
 
@@ -1377,14 +1380,9 @@ export default function App() {
           />
         );
       case 'copilot':
-        return (
-          <CopilotView 
-            logs={logs}
-            commands={commands}
-            onCreateCommand={handleCreateCommand}
-            onAddLog={addManualLog}
-          />
-        );
+        return null; // Rendered persistently in main container to guarantee workspace persistence across tab navigation
+      case 'ai-platform-context':
+        return <AIPlatformContextView />;
       case 'bots':
         return (
           <BotsView 
@@ -1535,7 +1533,7 @@ export default function App() {
         );
       case 'terminal':
         return (
-          <LogsView 
+          <LiveTerminalView 
             logs={logs}
             commands={commands}
             onClearLogs={handleClearLogs}
@@ -1609,6 +1607,8 @@ export default function App() {
         return <GuruArchitectureVersionsView />;
       case 'module-registration':
         return <ModuleRegistrationArchitectureView />;
+      case 'listeners':
+        return <ListenerManagementView />;
       default:
         return <DashboardView bots={bots} logs={logs} systemMetrics={systemMetrics} onBotClick={() => {}} onDeployClick={() => {}} onRefresh={triggerSync} />;
     }
@@ -1633,7 +1633,7 @@ export default function App() {
 
   // --- Signed-In Cluster Panel Layout ---
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-300 flex relative font-sans selection:bg-blue-600 selection:text-white pb-16 lg:pb-0">
+    <div className="min-h-screen bg-slate-950 text-slate-300 grid grid-cols-1 lg:grid-cols-[256px_1fr] relative font-sans selection:bg-blue-600 selection:text-white pb-16 lg:pb-0">
       {/* Sidebar navigation */}
       <Sidebar 
         currentTab={currentTab} 
@@ -1658,7 +1658,7 @@ export default function App() {
       />
 
       {/* Main console content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex flex-col min-w-0 min-h-screen">
         {/* Navbar */}
         <Navbar 
           onRefresh={triggerSync} 
@@ -1692,8 +1692,16 @@ export default function App() {
         )}
 
         {/* Content canvas */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
-          {renderTabContent()}
+        <main className={`flex-1 ${currentTab === 'copilot' ? 'p-2 sm:p-4 h-[calc(100vh-65px)] max-w-none' : 'p-4 sm:p-6 lg:p-8 max-w-7xl'} w-full mx-auto relative overflow-y-auto`}>
+          <div className={currentTab === 'copilot' ? 'h-full w-full' : 'hidden'}>
+            <CopilotView 
+              logs={logs}
+              commands={commands}
+              onCreateCommand={handleCreateCommand}
+              onAddLog={addManualLog}
+            />
+          </div>
+          {currentTab !== 'copilot' && renderTabContent()}
         </main>
       </div>
 

@@ -1,5 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { DatabaseService, DatabaseState, Log, Bot, Command, Plugin } from "./db";
+import { intelligenceCenter } from "./intelligenceCenter";
+import { systemGraphContextEngine } from "./ai/systemGraphContextEngine";
+import { platformInspector } from "./ai/platformInspector";
+import { remediationEngine } from "./ai/remediationEngine";
 
 export interface CopilotMemoryItem {
   id: string;
@@ -893,7 +897,7 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
   /**
    * Safely executes an authorized platform tool on behalf of the AI
    */
-  public static executeTool(
+  public static async executeTool(
     toolName: string,
     args: any,
     userRole: string = 'Administrator'
@@ -982,7 +986,6 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
 
       case 'get_intelligence_overview': {
         try {
-          const { intelligenceCenter } = require("./intelligenceCenter");
           const overview = intelligenceCenter.getIntelligenceOverview();
           result = { success: true, overview };
         } catch (e: any) {
@@ -993,9 +996,49 @@ ${planned.length > 0 ? planned.map(p => `- [${p.module}] ${p.summary}`).join('\n
 
       case 'execute_reasoning_pipeline': {
         try {
-          const { intelligenceCenter } = require("./intelligenceCenter");
           const decision = intelligenceCenter.executeReasoningPipeline(args.targetAppId);
           result = { success: true, decision };
+        } catch (e: any) {
+          result = { success: false, error: e.message };
+        }
+        break;
+      }
+
+      case 'get_system_context_graph': {
+        try {
+          const graph = systemGraphContextEngine.getPlatformSystemGraph();
+          result = { success: true, graph };
+        } catch (e: any) {
+          result = { success: false, error: e.message };
+        }
+        break;
+      }
+
+      case 'inspect_subsystem': {
+        try {
+          const inspection = platformInspector.inspectSubsystem(args.target || 'ALL');
+          result = { success: true, inspection };
+        } catch (e: any) {
+          result = { success: false, error: e.message };
+        }
+        break;
+      }
+
+      case 'execute_self_healing': {
+        try {
+          let healingResults;
+          if (args.subsystem === 'bots') {
+            healingResults = [remediationEngine.healBotDaemons()];
+          } else if (args.subsystem === 'mtls') {
+            healingResults = [remediationEngine.healMTLSBoundary()];
+          } else if (args.subsystem === 'kms') {
+            healingResults = [remediationEngine.healKMSVaultWrapper()];
+          } else if (args.subsystem === 'logs') {
+            healingResults = [remediationEngine.healLogBuffer()];
+          } else {
+            healingResults = remediationEngine.executeFullPlatformHealing();
+          }
+          result = { success: true, healingResults };
         } catch (e: any) {
           result = { success: false, error: e.message };
         }

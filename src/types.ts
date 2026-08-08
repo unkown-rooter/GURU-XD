@@ -148,7 +148,7 @@ export interface SecurityAlert {
 export interface LogLine {
   id: string;
   timestamp: string;
-  type: 'info' | 'command' | 'error' | 'success' | 'warning';
+  type: 'info' | 'command' | 'error' | 'success' | 'warning' | 'mtls';
   message: string;
   source: string;
 }

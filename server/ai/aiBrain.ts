@@ -1,6 +1,7 @@
 import { DatabaseService } from "../db";
 import { COPILOT_AGENTS, CopilotAgentProfile } from "../copilotEngine";
 import { KeywordEngine, KeywordDetectionResult } from "./keywordEngine";
+import { intelligenceCenter } from "../intelligenceCenter";
 
 export type PromptIntent = 'CONVERSATION_QUESTION' | 'SYSTEM_DIAGNOSTICS_REQUEST' | 'TOOL_EXECUTION_REQUEST' | 'CODE_GENERATION_REQUEST';
 
@@ -74,7 +75,6 @@ export class AIBrain {
    */
   public executeReasoningPipeline() {
     try {
-      const { intelligenceCenter } = require("../intelligenceCenter");
       intelligenceCenter.executeReasoningPipeline();
     } catch (e) {
       // Non-blocking fallback if AI Brain is initializing

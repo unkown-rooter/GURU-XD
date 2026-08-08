@@ -3,7 +3,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import router from "./server/routes";
-import { requestLogger, errorHandler } from "./server/middleware";
+import { requestLogger, errorHandler, securityHeadersMiddleware, correlationIdMiddleware } from "./server/middleware";
 import { BotDaemonService } from "./server/services";
 import { bootstrapModuleSystem } from "./server/modules";
 import { initializeGURUXDToolInfrastructure } from "./server/tools";
@@ -19,6 +19,10 @@ async function startServer() {
 
   // Initialize Tooling Infrastructure
   initializeGURUXDToolInfrastructure();
+
+  // Security Headers, CORS & Correlation Tracing
+  app.use(securityHeadersMiddleware);
+  app.use(correlationIdMiddleware);
 
   // JSON Body Parser
   app.use(express.json());

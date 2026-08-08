@@ -112,12 +112,12 @@ export class AuthService {
   // API Keys Store
   private apiKeysMap: Map<string, ApiKeyRecord> = new Map();
 
-  // Injected Services
-  private encryptionService = EncryptionService.getInstance();
-  private rbacService = RBACService.getInstance();
-  private securityService = SecurityService.getInstance();
-  private auditSecurityService = AuditSecurityService.getInstance();
-  private trustService = TrustService.getInstance();
+  // Injected Services (lazy getters to prevent circular initialization)
+  private get encryptionService() { return EncryptionService.getInstance(); }
+  private get rbacService() { return RBACService.getInstance(); }
+  private get securityService() { return SecurityService.getInstance(); }
+  private get auditSecurityService() { return AuditSecurityService.getInstance(); }
+  private get trustService() { return TrustService.getInstance(); }
   private eventBus = AppEventBus.getInstance();
 
   private constructor() {

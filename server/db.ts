@@ -939,3 +939,5 @@ export class DatabaseService {
   }
 }
 
+export const dbService = DatabaseService.getInstance();
+

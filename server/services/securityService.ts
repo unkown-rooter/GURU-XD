@@ -89,7 +89,9 @@ export class SecurityService {
 
   private eventBus = AppEventBus.getInstance();
   private auditSecurityService = AuditSecurityService.getInstance();
-  private trustService = TrustService.getInstance();
+  private get trustService() {
+    return TrustService.getInstance();
+  }
 
   private constructor() {
     this.securityPolicy = {

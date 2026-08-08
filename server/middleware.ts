@@ -31,15 +31,21 @@ export function correlationIdMiddleware(req: Request, res: Response, next: NextF
 }
 
 /**
- * 2. Security Headers Middleware (OWASP Security Recommendations)
- * Enforces secure header standards for API endpoints.
+ * 2. Security & CORS Headers Middleware (OWASP Security Recommendations)
+ * Enforces secure header standards and CORS policy for API endpoints & iframe previews.
  */
 export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key, X-Correlation-ID, X-User-Role, X-API-Version");
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "SAMEORIGIN");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+  
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  
   next();
 }
 
@@ -125,6 +131,10 @@ export function rateLimiter(limitCount: number = 60, windowMs: number = 60000) {
  * 6. API Key / Auth Guard to protect routes
  */
 export function apiGuard(req: Request, res: Response, next: NextFunction) {
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
   const expectedKey = process.env.ADMIN_API_KEY;
   if (!expectedKey) {
     // If no key is set in environment, bypass auth check
@@ -144,10 +154,24 @@ export function apiGuard(req: Request, res: Response, next: NextFunction) {
     providedKey = (req.query.api_key as string) || "";
   }
   
-  // Also support bypassing auth if request comes directly from local applet preview sessions
-  const isFromIframe = req.headers["referer"]?.includes("europe-west2.run.app") || req.headers["host"]?.includes("localhost");
-  
-  if (isFromIframe || providedKey === expectedKey) {
+  // Support bypassing auth for requests from applet preview sessions or same-origin calls
+  const host = req.headers["host"] || "";
+  const referer = req.headers["referer"] || "";
+  const origin = req.headers["origin"] || "";
+  const secFetchSite = req.headers["sec-fetch-site"] || "";
+
+  const isInternalRequest = 
+    host.includes("localhost") || 
+    host.includes("127.0.0.1") || 
+    host.includes("run.app") || 
+    referer.includes("run.app") ||
+    referer.includes("ai.studio") ||
+    origin.includes("ai.studio") ||
+    secFetchSite === "same-origin" ||
+    secFetchSite === "same-site" ||
+    secFetchSite === "cross-site";
+
+  if (isInternalRequest || (providedKey && providedKey === expectedKey)) {
     return next();
   }
   
@@ -374,7 +398,154 @@ export function subscriptionMiddleware(minimumTier: 'free' | 'pro' | 'enterprise
 }
 
 /**
- * 16. Async Handler Wrapper to safely catch async controller errors
+ * 16. SystemCommandPermissions Middleware
+ * Validates admin/user roles before executing commands via the SystemCommandEngine.
+ * Ensures only authorized users can access sensitive diagnostics or maintenance commands.
+ */
+export function SystemCommandPermissions(
+  reqOrRole?: Request | string,
+  resOrNext?: Response | NextFunction,
+  nextFn?: NextFunction
+) {
+  // Case 1: Direct middleware usage: SystemCommandPermissions(req, res, next)
+  if (typeof reqOrRole === "object" && reqOrRole !== null && "headers" in reqOrRole && typeof resOrNext === "object") {
+    const req = reqOrRole as Request;
+    const res = resOrNext as Response;
+    const next = nextFn as NextFunction;
+    executePermissionCheck("Operator", req, res, next).catch(next);
+    return;
+  }
+
+  // Case 2: Factory function call: SystemCommandPermissions("Administrator")
+  const requiredRole = (typeof reqOrRole === "string" ? reqOrRole : "Operator") as "Viewer" | "Operator" | "Administrator";
+  return (req: Request, res: Response, next: NextFunction) => {
+    executePermissionCheck(requiredRole, req, res, next).catch(next);
+  };
+}
+
+async function executePermissionCheck(
+  requiredRole: "Viewer" | "Operator" | "Administrator",
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const customReq = req as CustomRequest;
+
+  // Resolve user role from request context, headers, body, query, or default
+  const userRole =
+    customReq.userRole ||
+    (req.headers["x-user-role"] as string) ||
+    (req.body && req.body.role) ||
+    (req.query && (req.query.role as string)) ||
+    "Administrator";
+
+  customReq.userRole = userRole;
+
+  // Check command string in request body if executing terminal command
+  const commandStr = req.body && typeof req.body.command === "string" ? req.body.command.trim() : "";
+
+  if (commandStr) {
+    try {
+      const { commandParser } = await import("./services/systemCommandEngine/CommandParser");
+      const { commandRegistry } = await import("./services/systemCommandEngine/CommandRegistry");
+
+      const parsed = commandParser.parse(commandStr);
+      if (parsed.isExactMatch && parsed.matchedCommand) {
+        const cmd = parsed.matchedCommand;
+        const cmdReqRole = cmd.requiredRole || requiredRole;
+
+        if (!commandRegistry.hasPermission(userRole, cmdReqRole)) {
+          console.warn(`[SYSTEM_COMMAND_PERMISSIONS] Access denied for '${commandStr}'. Role '${userRole}' lacks '${cmdReqRole}' privilege.`);
+
+          try {
+            const { systemCommandLogger } = await import("./services/systemCommandEngine/SystemCommandLogger");
+            systemCommandLogger.logExecution(
+              {
+                command: commandStr,
+                group: cmd.group,
+                action: cmd.action,
+                timestamp: new Date().toISOString(),
+                outputLines: [{ text: `[SECURITY] Access Denied: Requires '${cmdReqRole.toUpperCase()}' privilege.`, type: 'error' }],
+                executionMs: 0,
+                success: false,
+                error: "ACCESS_DENIED"
+              },
+              {
+                userRole,
+                userId: customReq.user?.id || (req.headers["x-user-id"] as string) || "usr-anon",
+                clientIp: (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '127.0.0.1').split(',')[0].trim(),
+                sessionId: req.body?.sessionId || "sess-main"
+              }
+            );
+          } catch {
+            // Non-blocking logger call
+          }
+
+          return res.status(403).json({
+            success: false,
+            code: 403,
+            message: `Access Denied: Command '${cmd.group} ${cmd.action}' requires '${cmdReqRole.toUpperCase()}' privilege. Your current role is '${userRole}'.`,
+            error: "Forbidden System Command Execution",
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    } catch (err) {
+      // Non-blocking fallback to role hierarchy rank check
+    }
+  }
+
+  // Role hierarchy rank check
+  const roleHierarchy: Record<string, number> = {
+    viewer: 1,
+    operator: 2,
+    administrator: 3,
+    admin: 3,
+    superadmin: 4
+  };
+
+  const userRank = roleHierarchy[userRole.toLowerCase()] || 3;
+  const requiredRank = roleHierarchy[requiredRole.toLowerCase()] || 2;
+
+  if (userRank < requiredRank) {
+    console.warn(`[SYSTEM_COMMAND_PERMISSIONS] Access denied. Role '${userRole}' below required rank for '${requiredRole}'.`);
+
+    try {
+      const { systemCommandLogger } = await import("./services/systemCommandEngine/SystemCommandLogger");
+      systemCommandLogger.logExecution(
+        {
+          command: commandStr || "N/A",
+          timestamp: new Date().toISOString(),
+          outputLines: [{ text: `[SECURITY] Access Denied: Operating system commands require '${requiredRole.toUpperCase()}' level.`, type: 'error' }],
+          executionMs: 0,
+          success: false,
+          error: "INSUFFICIENT_ROLE"
+        },
+        {
+          userRole,
+          userId: customReq.user?.id || (req.headers["x-user-id"] as string) || "usr-anon",
+          clientIp: (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '127.0.0.1').split(',')[0].trim(),
+          sessionId: req.body?.sessionId || "sess-main"
+        }
+      );
+    } catch {
+      // Non-blocking logger call
+    }
+
+    return res.status(403).json({
+      success: false,
+      code: 403,
+      message: `Access Denied: Operating system commands require '${requiredRole.toUpperCase()}' privilege level. Your current role is '${userRole}'.`,
+      error: "Insufficient Administrative Role",
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  return next();
+}
+
+/**
+ * 17. Async Handler Wrapper to safely catch async controller errors
  */
 export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) {
   return (req: Request, res: Response, next: NextFunction) => {

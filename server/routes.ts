@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { DatabaseService } from "./db";
 import { dao } from "./dao";
-import { apiGuard, rateLimiter } from "./middleware";
+import { apiGuard, rateLimiter, SystemCommandPermissions } from "./middleware";
 import {
   BotController,
   CommandController,
@@ -27,7 +27,10 @@ import {
   ModuleRegistrationController,
   PlatformStateController,
   PluginManagementController,
-  ToolController
+  ToolController,
+  SecurityCoreController,
+  EventListenerController,
+  TerminalController
 } from "./controllers";
 
 const router = Router();
@@ -84,6 +87,33 @@ v1Router.get("/metrics", apiGuard, (req, res) => {
 // ============================================================================
 // 1. CORE SYSTEM & TELEMETRY ROUTES
 // ============================================================================
+
+/**
+ * @openapi
+ * /api/v1/health:
+ *   get:
+ *     summary: General system health check
+ *     tags: [Core System]
+ */
+v1Router.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    success: true,
+    timestamp: new Date().toISOString(),
+    version: "5.2.0",
+    health: dbService.checkHealth()
+  });
+});
+
+router.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    success: true,
+    timestamp: new Date().toISOString(),
+    version: "5.2.0",
+    health: dbService.checkHealth()
+  });
+});
 
 /**
  * @openapi
@@ -602,14 +632,29 @@ v1Router.get("/copilot/sandbox/history", apiGuard, CopilotController.getSandboxH
 v1Router.post("/copilot/sandbox/rollback/:deploymentId", apiGuard, CopilotController.rollbackSandbox);
 
 v1Router.post("/copilot/execute-tool", apiGuard, CopilotController.executeTool);
+v1Router.get("/copilot/tools/registry", apiGuard, CopilotController.getToolRegistry);
+v1Router.get("/copilot/context/aggregated", apiGuard, CopilotController.getAggregatedContext);
+v1Router.get("/copilot/tasks/background", apiGuard, CopilotController.getBackgroundTasks);
+v1Router.post("/copilot/tasks/background", apiGuard, CopilotController.launchBackgroundTask);
+v1Router.get("/copilot/observability/metrics", apiGuard, CopilotController.getObservabilityMetrics);
 v1Router.get("/copilot/analytics", apiGuard, CopilotController.getAnalytics);
 v1Router.get("/copilot/agents", apiGuard, CopilotController.getAgents);
+
+v1Router.get("/copilot/workspace/session", apiGuard, CopilotController.getWorkspaceSession);
+v1Router.post("/copilot/workspace/session", apiGuard, CopilotController.saveWorkspaceSession);
+v1Router.post("/copilot/workspace/autosave-draft", apiGuard, CopilotController.autosaveDraft);
+v1Router.post("/copilot/workspace/recover", apiGuard, CopilotController.recoverWorkspaceSession);
 
 v1Router.get("/ai/providers", apiGuard, CopilotController.getProviders);
 v1Router.get("/ai/usage-audit", apiGuard, CopilotController.getRuntimeUsageAudit);
 v1Router.get("/ai/queue", apiGuard, CopilotController.getQueue);
 v1Router.post("/ai/cancel", apiGuard, CopilotController.cancelRequest);
 v1Router.get("/ai/cache", apiGuard, CopilotController.getCacheStats);
+
+v1Router.get("/ai-core/platform-context", apiGuard, CopilotController.getPlatformSystemGraph);
+v1Router.post("/ai-core/platform-context/inspect", apiGuard, CopilotController.inspectSubsystems);
+v1Router.post("/ai-core/remediation/heal", apiGuard, CopilotController.executeRemediation);
+v1Router.get("/copilot/platform-context", apiGuard, CopilotController.getPlatformSystemGraph);
 
 // Environment Configuration Manager Routes
 v1Router.get("/env/manager", apiGuard, EnvConfigController.getOverview);
@@ -716,6 +761,37 @@ v1Router.post("/plugins/:id/reload", apiGuard, PluginManagementController.reload
 v1Router.get("/plugins/interaction-graph", apiGuard, PluginManagementController.getInteractionGraph);
 v1Router.post("/plugins/ai-query", apiGuard, PluginManagementController.queryAIPlugins);
 
+// ============================================================================
+// 16. GX-006 SECURITY CORE & VAULT ROUTES
+// ============================================================================
+v1Router.get("/security-core/overview", apiGuard, SecurityCoreController.getDashboardOverview);
+v1Router.get("/security-core/identities", apiGuard, SecurityCoreController.getIdentities);
+v1Router.get("/security-core/vault", apiGuard, SecurityCoreController.getSecretsVault);
+v1Router.post("/security-core/vault/rotate", apiGuard, SecurityCoreController.rotateSecret);
+v1Router.post("/security-core/risk-analysis", apiGuard, SecurityCoreController.analyzeRisk);
+v1Router.post("/security-core/kms/configure", apiGuard, SecurityCoreController.configureKMS);
+v1Router.post("/security-core/mtls/verify", apiGuard, SecurityCoreController.verifyMTLS);
+v1Router.post("/security-core/threat-modeling/scan-plugin", apiGuard, SecurityCoreController.scanPluginThreats);
+
+// ============================================================================
+// 17. GX-012 EVENT INTELLIGENCE & LISTENER MANAGEMENT
+// ============================================================================
+v1Router.get("/event-listeners", apiGuard, EventListenerController.getListeners);
+v1Router.post("/event-listeners", apiGuard, EventListenerController.registerNewListener);
+v1Router.post("/event-listeners/dispatch", apiGuard, EventListenerController.dispatchEvent);
+v1Router.post("/event-listeners/:id/pause", apiGuard, EventListenerController.pauseListener);
+v1Router.post("/event-listeners/:id/resume", apiGuard, EventListenerController.resumeListener);
+v1Router.post("/event-listeners/:id/disable", apiGuard, EventListenerController.disableListener);
+v1Router.post("/event-listeners/:id/enable", apiGuard, EventListenerController.enableListener);
+
+// ============================================================================
+// 18. LIVE TERMINAL & SHELL EXECUTION
+// ============================================================================
+v1Router.post("/terminal/execute", apiGuard, SystemCommandPermissions, TerminalController.executeCommand);
+v1Router.get("/terminal/autocomplete", apiGuard, SystemCommandPermissions("Viewer"), TerminalController.getSuggestions);
+v1Router.get("/terminal/commands", apiGuard, SystemCommandPermissions("Viewer"), TerminalController.getAllCommands);
+v1Router.post("/terminal/commands/batch-update", apiGuard, SystemCommandPermissions("Administrator"), TerminalController.batchUpdateCommands);
+
 
 // ============================================================================
 // API ROUTER REGISTRATION (NON-BREAKING DUAL MOUNTING FOR /api/v1 AND /api)
@@ -723,7 +799,12 @@ v1Router.post("/plugins/ai-query", apiGuard, PluginManagementController.queryAIP
 // Mount v1 router under /api/v1 (New Versioned Routing Standard)
 router.use("/api/v1", v1Router);
 
-// Mount v1 router under /api (Preserves 100% Backward Compatibility)
-router.use("/api", v1Router);
+// Mount v1 router under /api for legacy endpoints (excluding /v1)
+router.use("/api", (req, res, next) => {
+  if (req.url.startsWith("/v1")) {
+    return next();
+  }
+  v1Router(req, res, next);
+});
 
 export default router;

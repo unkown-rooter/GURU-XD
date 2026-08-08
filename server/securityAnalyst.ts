@@ -705,6 +705,95 @@ export class AISecurityAnalyst {
     };
   }
 
+  /**
+   * Automated Continuous Threat Modeling for External Plugin Manifests
+   */
+  public scanPluginManifest(manifest: {
+    id?: string;
+    name?: string;
+    permissions?: string[];
+    hooks?: string[];
+    egressDomains?: string[];
+    dependencies?: Record<string, string>;
+  }): {
+    pluginId: string;
+    manifestName: string;
+    riskScore: number;
+    vulnerabilities: Array<{
+      category: 'UNAUTHORIZED_PERMISSION' | 'DANGEROUS_HOOK' | 'EGRESS_DOMAIN' | 'UNVERIFIED_DEPENDENCY';
+      severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      details: string;
+    }>;
+    approvedForDeployment: boolean;
+    scannedAt: string;
+  } {
+    const pluginId = manifest.id || `plugin-${Date.now()}`;
+    const manifestName = manifest.name || 'Unnamed External Plugin';
+    const vulnerabilities: Array<{
+      category: 'UNAUTHORIZED_PERMISSION' | 'DANGEROUS_HOOK' | 'EGRESS_DOMAIN' | 'UNVERIFIED_DEPENDENCY';
+      severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+      details: string;
+    }> = [];
+
+    let score = 0;
+
+    // 1. Permission audit
+    if (manifest.permissions) {
+      if (manifest.permissions.includes('*') || manifest.permissions.includes('system:root')) {
+        score += 50;
+        vulnerabilities.push({
+          category: 'UNAUTHORIZED_PERMISSION',
+          severity: 'CRITICAL',
+          details: 'Plugin requests wildcard or root system permissions (*).'
+        });
+      }
+      if (manifest.permissions.includes('secret:write_raw')) {
+        score += 30;
+        vulnerabilities.push({
+          category: 'UNAUTHORIZED_PERMISSION',
+          severity: 'HIGH',
+          details: 'Plugin requests unencrypted raw secret write access.'
+        });
+      }
+    }
+
+    // 2. Dangerous hooks check
+    if (manifest.hooks) {
+      if (manifest.hooks.some(h => h.includes('eval') || h.includes('exec') || h.includes('child_process'))) {
+        score += 40;
+        vulnerabilities.push({
+          category: 'DANGEROUS_HOOK',
+          severity: 'CRITICAL',
+          details: 'Dangerous code execution hook detected (eval/exec).'
+        });
+      }
+    }
+
+    // 3. Egress domains verification
+    if (manifest.egressDomains) {
+      const suspiciousDomains = manifest.egressDomains.filter(d => !d.endsWith('.guru.internal') && !d.endsWith('googleapis.com'));
+      if (suspiciousDomains.length > 0) {
+        score += 20;
+        vulnerabilities.push({
+          category: 'EGRESS_DOMAIN',
+          severity: 'MEDIUM',
+          details: `Unverified egress domains detected: ${suspiciousDomains.join(', ')}`
+        });
+      }
+    }
+
+    const approvedForDeployment = score < 40;
+
+    return {
+      pluginId,
+      manifestName,
+      riskScore: Math.min(100, score),
+      vulnerabilities,
+      approvedForDeployment,
+      scannedAt: new Date().toISOString()
+    };
+  }
+
   // Manually trigger a fresh AI Investigation on demand
   public triggerManualInvestigation(instanceId: string, instanceName: string, category: BotCategory, customEventName?: string): SecurityIncident {
     return this.generateInvestigationReport(

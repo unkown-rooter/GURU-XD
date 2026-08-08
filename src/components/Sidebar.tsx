@@ -91,6 +91,7 @@ export default function Sidebar({
       items: [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'copilot', label: 'AI Copilot', icon: Sparkles, badge: 'V2' },
+        { id: 'ai-platform-context', label: 'AI Platform Observer', icon: Cpu, badge: 'GRAPH' },
         { id: 'applications', label: 'Applications', icon: AppWindow, count: 5 },
         { id: 'deployments', label: 'Deployments', icon: Rocket },
         { id: 'bots', label: 'Instances', icon: BotIcon, count: botsCount !== undefined ? botsCount : 4 }
@@ -99,6 +100,7 @@ export default function Sidebar({
     {
       title: 'DEVELOPER TERMINAL',
       items: [
+        { id: 'listeners', label: 'Listener Intelligence', icon: Radio, badge: 'GX-012' },
         { id: 'module-registration', label: 'Module Registration', icon: Cpu, badge: 'AI-REG' },
         { id: 'terminal', label: 'Live Terminal', icon: Terminal },
         { id: 'logs', label: 'Live Logs', icon: ScrollText },

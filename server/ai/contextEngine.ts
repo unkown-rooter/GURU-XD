@@ -1,5 +1,6 @@
 import { DatabaseService } from "../db";
 import { COPILOT_AGENTS, CopilotAgentProfile, CopilotEngine } from "../copilotEngine";
+import { systemGraphContextEngine } from "./systemGraphContextEngine";
 
 export interface SystemContext {
   activeBotsCount: number;
@@ -55,6 +56,7 @@ export class ContextEngine {
     const db = this.dbService.read();
     const users = db.users || [];
     const usersList = users.map((u: any) => `- ${u.username} (${u.email}) [Role: ${u.role}, Status: ${u.status}]`).join('\n');
+    const systemGraphPrompt = systemGraphContextEngine.buildFullSystemGraphPromptContext();
 
     return `
 === PLATFORM CONTEXT (INTERNAL REFERENCE ONLY - DO NOT DUMP RAW STATUS UNLESS REQUESTED) ===
@@ -65,6 +67,9 @@ Active Cluster State: ${sysCtx.activeBotsCount}/${sysCtx.totalBotsCount} Bots Ru
 
 Registered Platform Users (${users.length}):
 ${usersList}
+
+${systemGraphPrompt}
 `;
   }
 }
+

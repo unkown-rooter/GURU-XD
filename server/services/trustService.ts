@@ -52,9 +52,8 @@ export interface AiTrustEvaluationResult {
 
 export class TrustService {
   private static instance: TrustService;
-  private securityService = SecurityService.getInstance();
-  private auditSecurityService = AuditSecurityService.getInstance();
-  private authService = AuthService.getInstance();
+  private get auditSecurityService() { return AuditSecurityService.getInstance(); }
+  private get authService() { return AuthService.getInstance(); }
   private eventBus = AppEventBus.getInstance();
 
   private constructor() {}
